@@ -1,0 +1,7 @@
+# Terraform Plan validation workflow
+name: Terraform Plan
+
+on:
+  pull_request:
+    paths:
+      - 'terraform/**'

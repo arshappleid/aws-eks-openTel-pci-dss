@@ -1,0 +1,5 @@
+# CODEOWNERS file for FinanceGuard DevSecOps monorepo
+* @financeguard-core-team
+/terraform/ @financeguard-platform-team
+/ansible/ @financeguard-platform-team
+/.github/workflows/ @financeguard-secops-team

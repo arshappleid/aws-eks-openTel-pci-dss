@@ -1,0 +1,2 @@
+# Prod environment override values
+replicaCount: 2

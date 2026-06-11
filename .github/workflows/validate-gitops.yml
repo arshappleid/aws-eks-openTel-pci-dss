@@ -1,0 +1,7 @@
+# GitOps manifests validation workflow
+name: Validate GitOps Manifests
+
+on:
+  pull_request:
+    paths:
+      - 'gitops/**'

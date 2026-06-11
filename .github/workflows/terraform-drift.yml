@@ -1,0 +1,6 @@
+# Scheduled drift detection workflow
+name: Terraform Drift Detection
+
+on:
+  schedule:
+    - cron: '0 0 * * *'

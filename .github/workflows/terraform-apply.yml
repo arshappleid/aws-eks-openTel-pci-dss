@@ -1,0 +1,9 @@
+# Terraform Apply workflow
+name: Terraform Apply
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'

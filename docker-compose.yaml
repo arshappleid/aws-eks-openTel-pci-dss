@@ -1,0 +1,13 @@
+services:
+    tf-dev:
+        build:
+            context: .
+            dockerfile: Dockerfile
+            args:
+                TERRAFORM_VERSION: "1.13.3"
+                INSTALL_AZURE_CLI: "YES"
+                INSTALL_AWS_CLI: "YES"
+        container_name: terraform_env
+        volumes:
+            - ./terraform/:/terraform/
+        working_dir: /terraform/

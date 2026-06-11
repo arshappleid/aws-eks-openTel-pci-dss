@@ -1,0 +1,7 @@
+# Semgrep configuration file
+rules:
+  - id: placeholder-rule
+    pattern: TODO
+    message: Placeholder
+    severity: INFO
+    languages: [generic]

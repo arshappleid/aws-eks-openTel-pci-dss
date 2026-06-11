@@ -1,0 +1,3 @@
+# Gitleaks configuration file
+[allowlist]
+description = "Global allowlist"

@@ -1,0 +1,5 @@
+# Reusable secure build & scan workflow
+name: Reusable CI
+
+on:
+  workflow_call:

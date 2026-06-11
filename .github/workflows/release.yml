@@ -1,0 +1,7 @@
+# GitHub Actions release/publish workflow
+name: Release Pipeline
+
+on:
+  push:
+    branches:
+      - main

@@ -1,0 +1,8 @@
+# Platform configuration linting and validation
+name: Platform Validation
+
+on:
+  pull_request:
+    paths:
+      - 'ansible/**'
+      - 'platform/**'

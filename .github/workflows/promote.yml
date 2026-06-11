@@ -1,0 +1,5 @@
+# GitOps Promotion workflow
+name: GitOps Promote
+
+on:
+  workflow_dispatch:

@@ -1,0 +1,3 @@
+# Prod environment container image digest reference
+image:
+  digest: "sha256:placeholder-prod-digest"
