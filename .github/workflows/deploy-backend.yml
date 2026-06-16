@@ -202,7 +202,7 @@ jobs:
               with:
                   task-definition: ${{ steps.task-def.outputs.task-definition }}
                   service: ${{ env.ECS_SERVICE }}
-                  cluster: ${{ vars.ECS_CLUSTER }}
+                  cluster: ${{ vars.BACKEND_ECS_CLUSTER }}
                   wait-for-service-stability: true
 
             - name: Print deployed task definition
