@@ -1,50 +1,64 @@
 name: Terraform Apply
 
 on:
-    workflow_dispatch:
-    push:
-        branches:
-            - dev
-            - stage
-            - prod
-        paths:
-            - "terraform/**"
+  push:
+    branches:
+      - dev
+      - stage
+      - prod
+    paths:
+      - 'terraform/**'
 
 permissions:
-    id-token: write
-    contents: read
+  id-token: write
+  contents: read
 
 jobs:
-    apply:
-        runs-on: ubuntu-25.04
-        strategy:
-            matrix:
-                environment: [dev, stage, prod]
-                layer: [network, compute]
-            max-parallel: 1
-        defaults:
-            run:
-                working-directory: terraform/environments/${{ matrix.environment }}/${{ matrix.layer }}
-        steps:
-            - uses: actions/checkout@v4
-
-            - name: Configure AWS Credentials
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                  role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-                  aws-region: us-east-1
-
-            - name: Setup Terraform
-              uses: hashicorp/setup-terraform@v3
-              with:
-                  terraform_version: ${{ secrets.TF_VERSION }}
-
-            - name: Terraform Init
-              run: |
-                  terraform init \
-                    -backend-config="bucket=${{ secrets.TF_S3_BACKEND_BUCKET }}" \
-                    -backend-config="key=eks-project/tfstate/${{ matrix.environment }}/${{ matrix.layer }}/terraform.tfstate" \
-                    -backend-config="region=us-east-1"
-
-            - name: Terraform Apply
-              run: terraform apply -auto-approve
+  apply:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev, stage, prod]
+        layer: [network, compute]
+      max-parallel: 1
+    defaults:
+      run:
+        working-directory: terraform/environments/${{ matrix.environment }}/${{ matrix.layer }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check if layer changed
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            changed:
+              - 'terraform/environments/${{ matrix.environment }}/${{ matrix.layer }}/**'
+              - 'terraform/environments/shared/**'
+              - 'terraform/modules/**'
+              - 'terraform/*.tf'
+              
+      - name: Configure AWS Credentials
+        if: steps.filter.outputs.changed == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          
+      - name: Setup Terraform
+        if: steps.filter.outputs.changed == 'true'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ secrets.TF_VERSION }}
+          
+      - name: Terraform Init
+        if: steps.filter.outputs.changed == 'true'
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_S3_BACKEND_BUCKET }}" \
+            -backend-config="key=eks-project/tfstate/${{ matrix.environment }}/${{ matrix.layer }}/terraform.tfstate" \
+            -backend-config="region=us-east-1"
+            
+      - name: Terraform Apply
+        if: steps.filter.outputs.changed == 'true'
+        run: terraform apply -auto-approve

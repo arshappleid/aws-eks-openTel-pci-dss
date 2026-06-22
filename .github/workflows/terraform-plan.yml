@@ -1,51 +1,66 @@
 name: Terraform Plan
 
 on:
-    workflow_dispatch:
-    pull_request:
-        branches:
-            - dev
-            - stage
-            - prod
-        paths:
-            - "terraform/**"
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - dev
+      - stage
+      - prod
+    paths:
+      - 'terraform/**'
 
 permissions:
-    id-token: write
-    contents: read
-    pull-requests: write
+  id-token: write
+  contents: read
+  pull-requests: write
 
 jobs:
-    plan:
-        runs-on: ubuntu-25.04
-        strategy:
-            matrix:
-                environment: [dev, stage, prod]
-                layer: [network, compute]
-        defaults:
-            run:
-                working-directory: terraform/environments/${{ matrix.environment }}/${{ matrix.layer }}
-        steps:
-            - uses: actions/checkout@v4
-
-            - name: Configure AWS Credentials
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                  role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-                  aws-region: us-east-1
-
-            - name: Setup Terraform
-              uses: hashicorp/setup-terraform@v3
-              with:
-                  terraform_version: ${{ secrets.TF_VERSION }}
-
-            - name: Terraform Init
-              run: |
-                  terraform init \
-                    -backend-config="bucket=${{ secrets.TF_S3_BACKEND_BUCKET }}" \
-                    -backend-config="key=eks-project/tfstate/${{ matrix.environment }}/${{ matrix.layer }}/terraform.tfstate" \
-                    -backend-config="region=us-east-1"
-
-            - name: Terraform Plan
-              id: plan
-              run: terraform plan -no-color -out=tfplan
+  plan:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev, stage, prod]
+        layer: [network, compute]
+    defaults:
+      run:
+        working-directory: terraform/environments/${{ matrix.environment }}/${{ matrix.layer }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check if layer changed
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            changed:
+              - 'terraform/environments/${{ matrix.environment }}/${{ matrix.layer }}/**'
+              - 'terraform/environments/shared/**'
+              - 'terraform/modules/**'
+              - 'terraform/*.tf'
+              
+      - name: Configure AWS Credentials
+        if: steps.filter.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          
+      - name: Setup Terraform
+        if: steps.filter.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ secrets.TF_VERSION }}
+          
+      - name: Terraform Init
+        if: steps.filter.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_S3_BACKEND_BUCKET }}" \
+            -backend-config="key=eks-project/tfstate/${{ matrix.environment }}/${{ matrix.layer }}/terraform.tfstate" \
+            -backend-config="region=us-east-1"
+            
+      - name: Terraform Plan
+        if: steps.filter.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        id: plan
+        run: terraform plan -no-color -out=tfplan
