@@ -1,4 +1,3 @@
-# Terraform Apply workflow
 name: Terraform Apply
 
 on:
@@ -7,3 +6,42 @@ on:
       - main
     paths:
       - 'terraform/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev, stage, prod]
+        layer: [network, compute]
+      max-parallel: 1
+    defaults:
+      run:
+        working-directory: terraform/environments/${{ matrix.environment }}/${{ matrix.layer }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ secrets.TF_VERSION }}
+          
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_S3_BACKEND_BUCKET }}" \
+            -backend-config="key=env/${{ matrix.environment }}/${{ matrix.layer }}/terraform.tfstate" \
+            -backend-config="region=us-east-1"
+            
+      - name: Terraform Apply
+        run: terraform apply -auto-approve

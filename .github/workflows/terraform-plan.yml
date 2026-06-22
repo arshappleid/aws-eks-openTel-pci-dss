@@ -1,7 +1,46 @@
-# Terraform Plan validation workflow
 name: Terraform Plan
 
 on:
   pull_request:
     paths:
       - 'terraform/**'
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev, stage, prod]
+        layer: [network, compute]
+    defaults:
+      run:
+        working-directory: terraform/environments/${{ matrix.environment }}/${{ matrix.layer }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ secrets.TF_VERSION }}
+          
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_S3_BACKEND_BUCKET }}" \
+            -backend-config="key=env/${{ matrix.environment }}/${{ matrix.layer }}/terraform.tfstate" \
+            -backend-config="region=us-east-1"
+            
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -out=tfplan

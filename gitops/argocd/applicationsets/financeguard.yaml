@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+    name: financeguard
+    namespace: argocd
+spec:
+    generators:
+        - matrix:
+              generators:
+                  - list:
+                        elements:
+                            - env: dev
+                            - env: staging
+                            - env: prod
+                  - list:
+                        elements:
+                            - tier: frontend
+                            - tier: backend
+    template:
+        metadata:
+            name: "financeguard-{{env}}-{{tier}}"
+        spec:
+            project: financeguard
+            source:
+                repoURL: 'https://github.com/arshappleid/aws-eks-openTel-pci-dss.git'
+                targetRevision: HEAD
+                path: helm/financeguard
+                helm:
+                    valueFiles:
+                        # Core environment & tier overrides
+                        - ../../gitops/environments/{{env}}/financeguard/{{tier}}/values.yaml
+                        # Dynamic image digest updated by CI/CD
+                        - ../../gitops/environments/{{env}}/financeguard/{{tier}}/image-digest.yaml
+            destination:
+                # Assumes you add your EKS clusters to ArgoCD using their cluster names
+                name: "financeguard-{{env}}-{{tier}}"
+                namespace: financeguard
+            syncPolicy:
+                automated:
+                    prune: true
+                    selfHeal: true
+                syncOptions:
+                    - CreateNamespace=true

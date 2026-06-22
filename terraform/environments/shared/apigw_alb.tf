@@ -64,7 +64,7 @@ module "api_gateway" {
   description   = "HTTP API Gateway for inspection"
   protocol_type = "HTTP"
 
-  create_api_domain_name = false
+  create_domain_name = false
 
   vpc_links = {
     inspection-vpc = {

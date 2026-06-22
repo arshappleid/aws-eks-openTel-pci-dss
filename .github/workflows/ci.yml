@@ -1,7 +1,0 @@
-# GitHub Actions CI workflow for applications
-name: Application CI
-
-on:
-  pull_request:
-    paths:
-      - 'app/**'

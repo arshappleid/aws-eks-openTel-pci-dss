@@ -13,8 +13,8 @@ module "dev_network" {
   vpc_name        = "dev-vpc"
   vpc_cidr        = "10.10.0.0/16"
   azs             = ["${var.aws_region}a", "${var.aws_region}b", "${var.aws_region}c"]
-  private_subnets = ["10.10.1.0/24", "10.10.2.0/24", "10.10.3.0/24"]
-  public_subnets  = ["10.10.101.0/24", "10.10.102.0/24", "10.10.103.0/24"]
+  private_subnets = ["10.10.1.0/24", "10.10.2.0/24"]
+  intra_subnets     = ["10.10.3.0/24"]
 
   single_nat_gateway = true
   cluster_name       = "dev-eks-cluster"
@@ -57,8 +57,8 @@ module "stage_network" {
   vpc_name        = "stage-vpc"
   vpc_cidr        = "10.20.0.0/16"
   azs             = ["${var.aws_region}a", "${var.aws_region}b", "${var.aws_region}c"]
-  private_subnets = ["10.20.1.0/24", "10.20.2.0/24", "10.20.3.0/24"]
-  public_subnets  = ["10.20.101.0/24", "10.20.102.0/24", "10.20.103.0/24"]
+  private_subnets = ["10.20.1.0/24", "10.20.2.0/24"]
+  intra_subnets     = ["10.20.3.0/24"]
 
   single_nat_gateway = true
   cluster_name       = "stage-eks-cluster"
@@ -102,8 +102,8 @@ module "prod_network" {
   vpc_name        = "prod-vpc"
   vpc_cidr        = "10.30.0.0/16"
   azs             = ["${var.aws_region}a", "${var.aws_region}b", "${var.aws_region}c"]
-  private_subnets = ["10.30.1.0/24", "10.30.2.0/24", "10.30.3.0/24"]
-  public_subnets  = ["10.30.101.0/24", "10.30.102.0/24", "10.30.103.0/24"]
+  private_subnets = ["10.30.1.0/24", "10.30.2.0/24"]
+  intra_subnets     = ["10.30.3.0/24"]
 
   # High availability NAT configuration for Production
   single_nat_gateway = false

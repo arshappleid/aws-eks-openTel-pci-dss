@@ -18,6 +18,11 @@ module "inspection_vpc" {
 
   public_subnets  = var.public_subnets
   private_subnets = var.private_subnets
+  intra_subnets   = [
+    cidrsubnet(var.vpc_cidr, 8, 250),
+    cidrsubnet(var.vpc_cidr, 8, 251),
+    cidrsubnet(var.vpc_cidr, 8, 252)
+  ]
 
   # HA: one NAT Gateway per AZ for the inspection hub
   enable_nat_gateway     = true
@@ -86,6 +91,7 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "inspection" {
 
   transit_gateway_default_route_table_association = false
   transit_gateway_default_route_table_propagation = false
+  appliance_mode_support                          = "enable"
 
   tags = merge(local.common_tags, {
     Name = "inspection-tgw-attachment"
@@ -103,4 +109,21 @@ resource "aws_ec2_transit_gateway_route" "to_inspection" {
   destination_cidr_block         = "0.0.0.0/0"
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.inspection.id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.spokes.id
+}
+
+# Return routes from the DMZ VPC back to the Spoke VPCs via the Transit Gateway
+resource "aws_route" "inspection_public_to_spokes" {
+  count = length(module.inspection_vpc.public_route_table_ids)
+
+  route_table_id         = module.inspection_vpc.public_route_table_ids[count.index]
+  destination_cidr_block = "10.0.0.0/8"
+  transit_gateway_id     = aws_ec2_transit_gateway.this.id
+}
+
+resource "aws_route" "inspection_private_to_spokes" {
+  count = length(module.inspection_vpc.private_route_table_ids)
+
+  route_table_id         = module.inspection_vpc.private_route_table_ids[count.index]
+  destination_cidr_block = "10.0.0.0/8"
+  transit_gateway_id     = aws_ec2_transit_gateway.this.id
 }

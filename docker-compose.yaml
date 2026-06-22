@@ -10,4 +10,5 @@ services:
         container_name: terraform_env
         volumes:
             - ./terraform/:/terraform/
+            - ./azure_terraform/:/azure_terraform/
         working_dir: /terraform/

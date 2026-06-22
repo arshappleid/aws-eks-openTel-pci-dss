@@ -9,8 +9,9 @@ module "vpc" {
   azs             = var.azs
   private_subnets = var.private_subnets
   public_subnets  = var.public_subnets
+  intra_subnets   = var.intra_subnets
 
-  enable_nat_gateway     = true
+  enable_nat_gateway     = length(var.public_subnets) > 0
   single_nat_gateway     = var.single_nat_gateway
   one_nat_gateway_per_az = !var.single_nat_gateway
 
@@ -30,16 +31,13 @@ module "vpc" {
   tags = var.tags
 }
 
-# ==============================================================================
-# Transit Gateway Integration (VPC Attachment and Route Configuration)
-# ==============================================================================
 
 resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
   count = var.transit_gateway_id != null && var.transit_gateway_id != "" ? 1 : 0
 
   transit_gateway_id = var.transit_gateway_id
   vpc_id             = module.vpc.vpc_id
-  subnet_ids         = module.vpc.private_subnets
+  subnet_ids         = length(module.vpc.intra_subnets) > 0 ? module.vpc.intra_subnets : module.vpc.private_subnets
 
   # Disable default association and propagation to enforce manual configuration (PCI-DSS compliance)
   transit_gateway_default_route_table_association = false
@@ -84,10 +82,12 @@ locals {
 }
 
 resource "aws_route" "tgw" {
-  for_each = { for idx, r in local.tgw_routes : "${r.route_table_id}-${r.destination}" => r }
+  for_each = { for idx, r in local.tgw_routes : "route-${idx}-${r.destination}" => r }
 
   route_table_id         = each.value.route_table_id
   destination_cidr_block = each.value.destination
   transit_gateway_id     = var.transit_gateway_id
+
+  depends_on = [aws_ec2_transit_gateway_vpc_attachment.this]
 }
 

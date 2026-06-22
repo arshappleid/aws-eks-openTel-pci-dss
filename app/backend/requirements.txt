@@ -6,3 +6,4 @@ httpx2
 splunk-opentelemetry[all]
 opentelemetry-exporter-otlp
 opentelemetry-sdk
+opentelemetry-instrumentation-fastapi

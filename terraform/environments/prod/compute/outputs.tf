@@ -1,13 +1,3 @@
-output "frontend_vpc_id" {
-  description = "The ID of the Dev Frontend VPC"
-  value       = module.frontend_network.vpc_id
-}
-
-output "backend_vpc_id" {
-  description = "The ID of the Dev Backend VPC"
-  value       = module.backend_network.vpc_id
-}
-
 output "frontend_cluster_name" {
   description = "The name of the Frontend EKS cluster"
   value       = module.frontend_eks.cluster_name

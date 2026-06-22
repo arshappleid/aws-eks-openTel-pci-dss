@@ -21,6 +21,13 @@ variable "private_subnets" {
 variable "public_subnets" {
   description = "List of public subnet CIDR blocks"
   type        = list(string)
+  default     = []
+}
+
+variable "intra_subnets" {
+  description = "List of subnet CIDR blocks for Intra Subnets (e.g., for TGW attachments, completely isolated from public access)"
+  type        = list(string)
+  default     = []
 }
 
 variable "single_nat_gateway" {

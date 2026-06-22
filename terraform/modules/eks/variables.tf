@@ -40,3 +40,9 @@ variable "env" {
   description = "Environment name"
   type        = string
 }
+
+variable "github_repo_url" {
+  description = "The GitHub repository URL for ArgoCD to pull configurations from"
+  type        = string
+  default     = "https://github.com/arshappleid/aws-eks-openTel-pci-dss"
+}
