@@ -9,17 +9,8 @@ A production-grade, PCI-DSS compliant Kubernetes platform on AWS EKS for the fin
 - [Architecture Overview](#architecture-overview)
 - [Repository Structure](#repository-structure)
 - [Prerequisites](#prerequisites)
+- [Development Commands](#development-commands)
 - [Environment Summary](#environment-summary)
-- [Full Lifecycle Commands](#full-lifecycle-commands)
-  - [1. Infrastructure Provisioning (Terraform)](#1-infrastructure-provisioning-terraform)
-  - [2. Cluster Access & kubeconfig](#2-cluster-access--kubeconfig)
-  - [3. Application Deployment (Helm & GitOps)](#3-application-deployment-helm--gitops)
-  - [4. Observability Stack](#4-observability-stack)
-  - [5. Security Scanning](#5-security-scanning)
-  - [6. GitOps Promotion (Dev → Staging → Prod)](#6-gitops-promotion-dev--staging--prod)
-  - [7. Teardown & Destroy](#7-teardown--destroy)
-- [CI/CD Pipelines](#cicd-pipelines)
-- [Runbooks](#runbooks)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -27,7 +18,7 @@ A production-grade, PCI-DSS compliant Kubernetes platform on AWS EKS for the fin
 
 ## Architecture Overview
 
-```
+Architecture diagram and details will be added here.
 
 ---
 
@@ -81,13 +72,13 @@ A production-grade, PCI-DSS compliant Kubernetes platform on AWS EKS for the fin
 | **Gitleaks** | latest | `brew install gitleaks` or [GitHub releases](https://github.com/gitleaks/gitleaks/releases) |
 | **Semgrep** | latest | `pip install semgrep` |
 
-**AWS credentials** must be configured with sufficient IAM permissions:
-
+**AWS credentials** must be configured with sufficient IAM permissions. (e.g., via `aws configure` or `aws sso login`)
 
 ---
 
 ## Development Commands
-```
+
+```bash
 docker compose up -d
 docker exec -it terraform_env /bin/bash
 aws login --remote
@@ -101,19 +92,15 @@ terraform apply --auto-approve
 |----------|-----|---------|------|
 | **Frontend VPC CIDR** | `10.12.0.0/16` | `10.11.0.0/16` | `10.10.0.0/16` |
 | **Backend VPC CIDR** | `10.22.0.0/16` | `10.21.0.0/16` | `10.20.0.0/16` |
-| **EKS Clusters** | `financeguard-dev-frontend`<br>`financeguard-dev-backend` | `financeguard-staging-frontend`<br>`financeguard-staging-backend` | `financeguard-prod-frontend`<br>`financeguard-prod-backend` |
+| **EKS Clusters** | financeguard-dev-frontend<br />financeguard-dev-backend | financeguard-staging-frontend<br />financeguard-staging-backend | financeguard-prod-frontend<br />financeguard-prod-backend |
 | **EKS VPC** | Frontend & Backend | Frontend & Backend | Frontend & Backend |
 | **K8s Version** | 1.30 | 1.30 | 1.30 |
 | **Instance Type** | `t3.medium` | `t3.large` | `m5.large` |
 | **Capacity** | SPOT | SPOT | ON_DEMAND |
-| **Node Range** | 2 – 4 | 2 – 6 | 2 – 10 |
+| **Node Range** | 2 - 4 | 2 - 6 | 2 - 10 |
 | **NAT Gateway** | Single (cost-optimized) | None (Frontend) / Single (Backend) | Per-AZ (high availability) |
 | **EBS Encryption** | Default | Default | Enforced (PCI-DSS) |
 | **Terraform Dir** | `terraform/environments/dev` | `terraform/environments/stage` | `terraform/environments/prod` |
-
----
-
-
 
 ---
 

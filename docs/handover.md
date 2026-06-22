@@ -1,1 +1,0 @@
-# Operational Handover & Teardown Guide
