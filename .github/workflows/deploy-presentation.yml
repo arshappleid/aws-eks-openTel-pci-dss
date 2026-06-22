@@ -1,4 +1,4 @@
-name: Deploy Presentation
+name: Update Presentation
 
 on:
     push:
@@ -23,11 +23,10 @@ jobs:
               with:
                   node-version: "24"
 
-            - name: NPM Install
-              run: npm install
-
             - name: Build slides
-              run: npm run publish
+              run: |
+                mkdir -p dist
+                npx @marp-team/marp-cli@latest docs/presentation.md -o dist/index.html
 
             - name: Upload pages artifact
               uses: actions/upload-pages-artifact@v3
