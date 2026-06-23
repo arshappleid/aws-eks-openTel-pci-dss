@@ -8,6 +8,12 @@ module "alb" {
 
   enable_deletion_protection = false
 
+  access_logs = {
+    bucket  = "prab-terraform-backend"
+    enabled = true
+    prefix  = "eks-project/frontend-alb"
+  }
+
   # Security Group
   security_group_ingress_rules = {
     all_http = {
@@ -56,23 +62,4 @@ module "alb" {
   tags = local.common_tags
 }
 
-module "api_gateway" {
-  source  = "terraform-aws-modules/apigateway-v2/aws"
-  version = "~> 5.0"
 
-  name          = "inspection-api-gateway"
-  description   = "HTTP API Gateway for inspection"
-  protocol_type = "HTTP"
-
-  create_domain_name = false
-
-  vpc_links = {
-    inspection-vpc = {
-      name               = "inspection-vpc-link"
-      security_group_ids = [module.alb.security_group_id]
-      subnet_ids         = module.inspection_vpc.private_subnets
-    }
-  }
-
-  tags = local.common_tags
-}

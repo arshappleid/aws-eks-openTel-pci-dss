@@ -83,6 +83,10 @@ docker compose up -d
 docker exec -it terraform_env /bin/bash
 aws login --remote
 cd environments/shared/compute
+    terraform init \
+      -backend-config="bucket=prab-terraform-backend" \
+      -backend-config="key=eks-project/tfstate/dev/compute/terraform.tfstate" \
+      -backend-config="region=us-east-1"
 terraform apply --auto-approve
 ```
 

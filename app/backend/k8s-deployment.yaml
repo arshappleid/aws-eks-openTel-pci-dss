@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: financeguard-backend
+    labels:
+        app: financeguard-backend
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: financeguard-backend
+    template:
+        metadata:
+            labels:
+                app: financeguard-backend
+        spec:
+            containers:
+                - name: fastapi-backend
+                  image: financeguard-backend:latest
+                  imagePullPolicy: IfNotPresent
+                  ports:
+                      - containerPort: 8000
+
+                  # Environment variables
+                  env:
+                      - name: ENVIRONMENT
+                        value: "dev"
+                      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                        value: "http://otel-collector.financeguard.local:4317"
+
+                  # Resource constraints
+                  resources:
+                      requests:
+                          memory: "256Mi"
+                          cpu: "250m"
+                      limits:
+                          memory: "512Mi"
+                          cpu: "500m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: financeguard-backend-service
+spec:
+    selector:
+        app: financeguard-backend
+    ports:
+        - protocol: TCP
+          port: 80
+          targetPort: 8000
+    type: ClusterIP

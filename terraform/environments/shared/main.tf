@@ -3,6 +3,7 @@ locals {
   common_tags = {
     Project   = "aws-eks-openTel-pci-dss"
     ManagedBy = "Terraform"
+    Owner     = "Prabmeet"
     Environment = local.environment
   }
 }
@@ -24,10 +25,10 @@ module "inspection_vpc" {
     cidrsubnet(var.vpc_cidr, 8, 252)
   ]
 
-  # HA: one NAT Gateway per AZ for the inspection hub
+  # Cost-optimized: Single NAT Gateway for the inspection hub
   enable_nat_gateway     = true
-  single_nat_gateway     = false
-  one_nat_gateway_per_az = true
+  single_nat_gateway     = true
+  one_nat_gateway_per_az = false
 
   enable_dns_hostnames = true
   enable_dns_support   = true

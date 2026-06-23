@@ -5,7 +5,7 @@ on:
         branches: ["stage", "prod", "dev"]
         paths:
             - "app/backend/**"
-            - ".aws/backend-*-taskDefinition.json"
+            - "app/backend/k8s-deployment.yaml"
     workflow_dispatch:
 
 env:
@@ -183,37 +183,18 @@ jobs:
               id: login-ecr
               uses: aws-actions/amazon-ecr-login@v2
 
-            - name: Fill in the new image ID in task definition
-              id: task-def
-              uses: aws-actions/amazon-ecs-render-task-definition@v1
-              with:
-                  task-definition: ${{ vars.ECS_TASK_DEFINITION }}
-                  container-name: ${{ env.CONTAINER_NAME }}
-                  image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_NAME }}:${{ github.sha }}
+            - name: Update Kubeconfig for EKS
+              run: aws eks update-kubeconfig --name financeguard-${{ github.ref_name }}-backend --region ${{ env.AWS_REGION }}
 
-            - name: Verify Rendered Task Definition
+            - name: Apply Kubernetes Manifests
+              run: kubectl apply -f app/backend/k8s-deployment.yaml
+
+            - name: Update Deployment Image
               run: |
-                  echo "Latest Generated Task Definition"
-                  cat ${{ steps.task-def.outputs.task-definition }}
-
-            - name: Deploy Amazon ECS task definition
-              id: deploy-task-def
-              uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-              with:
-                  task-definition: ${{ steps.task-def.outputs.task-definition }}
-                  service: ${{ env.ECS_SERVICE }}
-                  cluster: ${{ vars.BACKEND_ECS_CLUSTER }}
-                  wait-for-service-stability: true
-
-            - name: Print deployed task definition
-              run: |
-                  TASK_DEF_ARN="${{ steps.deploy-task-def.outputs.task-definition-arn }}"
-                  FAMILY=$(echo "$TASK_DEF_ARN" | cut -d'/' -f2 | cut -d':' -f1)
-                  REVISION=$(echo "$TASK_DEF_ARN" | cut -d':' -f7)
-                  echo "Deployed Task Definition Details:"
-                  echo "Task Definition Family : $FAMILY"
-                  echo "Revision               : $REVISION"
-                  echo "Full ARN               : $TASK_DEF_ARN"
+                  kubectl set image deployment/financeguard-backend fastapi-backend=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_NAME }}:${{ github.sha }}
+                
+            - name: Wait for Rollout
+              run: kubectl rollout status deployment/financeguard-backend --timeout=300s
 
     api_test:
         name: API Testing
