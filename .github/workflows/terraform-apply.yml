@@ -19,7 +19,7 @@ jobs:
         runs-on: ubuntu-latest
         strategy:
             matrix:
-                environment: [dev, stage, prod]
+                environment: ["${{ github.ref_name }}"]
                 layer: [network, compute]
             max-parallel: 1
         defaults:

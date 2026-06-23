@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: [dev, stage, prod]
+        environment: ["${{ github.base_ref || github.ref_name }}"]
         layer: [network, compute]
     defaults:
       run:
