@@ -12,7 +12,7 @@ permissions:
 
 jobs:
     drift-detection:
-        runs-on: ubuntu-25.04
+        runs-on: ubuntu-latest
         strategy:
             matrix:
                 environment: [dev, stage, prod]
