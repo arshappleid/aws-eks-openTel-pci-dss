@@ -1,6 +1,6 @@
-# Staging Environment Configuration
+# Stage Environment Configuration
 locals {
-  environment           = "staging"
+  environment           = "stage"
   app_name              = "financeguard"
   frontend_cluster_name = "${local.app_name}-${local.environment}-frontend"
   backend_cluster_name  = "${local.app_name}-${local.environment}-backend"
@@ -10,10 +10,6 @@ locals {
     ManagedBy   = "Terraform"
   }
 }
-
-
-
-
 
 # Frontend EKS Cluster Module
 
@@ -82,55 +78,75 @@ module "backend_eks" {
   }
 
   tags = merge(local.tags, { Tier = "backend" })
-}
 
-
-# Configure Helm providers dynamically for both clusters
-provider "helm" {
-  alias = "frontend"
-  kubernetes {
-    host                   = module.frontend_eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.frontend_eks.cluster_certificate_authority_data)
-    exec {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      command     = "aws"
-      args        = ["eks", "get-token", "--cluster-name", module.frontend_eks.cluster_name]
+  access_entries = {
+    github_actions = {
+      principal_arn = var.github_actions_role_arn
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
     }
   }
 }
 
-provider "helm" {
-  alias = "backend"
-  kubernetes {
-    host                   = module.backend_eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.backend_eks.cluster_certificate_authority_data)
-    exec {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      command     = "aws"
-      args        = ["eks", "get-token", "--cluster-name", module.backend_eks.cluster_name]
+# Look up Target Groups from the Shared ALB
+data "aws_lb_target_group" "frontend" {
+  name = "tg-frontend-${var.env}"
+}
+
+data "aws_lb_target_group" "backend" {
+  name = "tg-backend-${var.env}"
+}
+
+# Bind EKS Frontend Service to ALB Target Group
+resource "kubernetes_manifest" "frontend_target_binding" {
+  provider = kubernetes.frontend
+
+  manifest = {
+    apiVersion = "elbv2.k8s.aws/v1beta1"
+    kind       = "TargetGroupBinding"
+    metadata = {
+      name      = "frontend-tg-binding"
+      namespace = "default"
+    }
+    spec = {
+      targetGroupARN = data.aws_lb_target_group.frontend.arn
+      targetType     = "ip"
+      serviceRef = {
+        name = "financeguard-frontend-service"
+        port = 80
+      }
     }
   }
+
+  depends_on = [module.frontend_eks]
 }
 
-# Configure Kubernetes providers dynamically for both clusters
-provider "kubernetes" {
-  alias                  = "frontend"
-  host                   = module.frontend_eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.frontend_eks.cluster_certificate_authority_data)
-  exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
-    command     = "aws"
-    args        = ["eks", "get-token", "--cluster-name", module.frontend_eks.cluster_name]
-  }
-}
+# Bind EKS Backend Service to ALB Target Group
+resource "kubernetes_manifest" "backend_target_binding" {
+  provider = kubernetes.backend
 
-provider "kubernetes" {
-  alias                  = "backend"
-  host                   = module.backend_eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.backend_eks.cluster_certificate_authority_data)
-  exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
-    command     = "aws"
-    args        = ["eks", "get-token", "--cluster-name", module.backend_eks.cluster_name]
+  manifest = {
+    apiVersion = "elbv2.k8s.aws/v1beta1"
+    kind       = "TargetGroupBinding"
+    metadata = {
+      name      = "backend-tg-binding"
+      namespace = "default"
+    }
+    spec = {
+      targetGroupARN = data.aws_lb_target_group.backend.arn
+      targetType     = "ip"
+      serviceRef = {
+        name = "financeguard-backend-service"
+        port = 80
+      }
+    }
   }
+
+  depends_on = [module.backend_eks]
 }

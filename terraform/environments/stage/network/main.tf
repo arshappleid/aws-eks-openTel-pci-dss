@@ -1,6 +1,6 @@
-# Staging Environment Configuration
+# Stage Environment Configuration
 locals {
-  environment           = "staging"
+  environment           = "stage"
   app_name              = "financeguard"
   frontend_cluster_name = "${local.app_name}-${local.environment}-frontend"
   backend_cluster_name  = "${local.app_name}-${local.environment}-backend"

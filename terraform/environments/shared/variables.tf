@@ -22,12 +22,6 @@ variable "private_subnets" {
   default     = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
 }
 
-variable "api_gateway_access_log_group_arn" {
-  description = "ARN of the CloudWatch Log Group for API Gateway access logs"
-  default="arn:aws:logs:us-east-1:866934333672:log-group:prab/eks/api_gw/"
-  type        = string
-}
-
 variable "common_tags" {
   description = "A map of tags to assign to resources"
   type        = map(string)
@@ -36,5 +30,53 @@ variable "common_tags" {
     Project     = "financeguard"
     ManagedBy   = "Terraform"
     Owner = "Prabmeet"
+  }
+}
+
+variable "services" {
+  description = "Map of frontend services to route via ALB path-based routing"
+  type = map(object({
+    path_pattern       = string
+    health_check_path  = string
+    alb_route_priority = number
+    strip_path_prefix  = bool
+  }))
+  default = {
+    backend-dev = {
+      path_pattern       = "/dev/api/*"
+      health_check_path  = "/health"
+      alb_route_priority = 10
+      strip_path_prefix  = true
+    }
+    backend-stage = {
+      path_pattern       = "/stage/api/*"
+      health_check_path  = "/health"
+      alb_route_priority = 20
+      strip_path_prefix  = true
+    }
+    backend-prod = {
+      path_pattern       = "/prod/api/*"
+      health_check_path  = "/health"
+      alb_route_priority = 30
+      strip_path_prefix  = true
+    }
+    frontend-dev = {
+      path_pattern       = "/dev/*"
+      health_check_path  = "/"
+      alb_route_priority = 100
+      strip_path_prefix  = true
+    }
+    frontend-stage = {
+      path_pattern       = "/stage/*"
+      health_check_path  = "/"
+      alb_route_priority = 110
+      strip_path_prefix  = true
+    }
+    frontend-prod = {
+      path_pattern       = "/prod/*"
+      health_check_path  = "/"
+      alb_route_priority = 120
+      strip_path_prefix  = true
+    }
   }
 }

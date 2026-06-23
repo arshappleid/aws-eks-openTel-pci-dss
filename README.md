@@ -33,7 +33,7 @@ Architecture diagram and details will be added here.
 │   ├── providers.tf
 │   ├── environments/           # Per-environment isolated configs
 │   │   ├── dev/
-│   │   ├── staging/
+│   │   ├── stage/
 │   │   └── prod/
 │   └── modules/
 │       ├── network/            # VPC (wraps terraform-aws-modules/vpc)
@@ -46,7 +46,7 @@ Architecture diagram and details will be added here.
 │   ├── argocd/                 # ArgoCD ApplicationSets & Projects
 │   ├── environments/           # Per-env Helm value overrides + image digests
 │   │   ├── dev/financeguard/
-│   │   ├── staging/financeguard/
+│   │   ├── stage/financeguard/
 │   │   └── prod/financeguard/
 │   └── policies/               # OPA/Kyverno policies
 ├── monitoring/observability/   # Grafana, Prometheus, Loki, Tempo, OTel configs
@@ -96,7 +96,7 @@ terraform apply --auto-approve
 |----------|-----|---------|------|
 | **Frontend VPC CIDR** | `10.12.0.0/16` | `10.11.0.0/16` | `10.10.0.0/16` |
 | **Backend VPC CIDR** | `10.22.0.0/16` | `10.21.0.0/16` | `10.20.0.0/16` |
-| **EKS Clusters** | financeguard-dev-frontend<br />financeguard-dev-backend | financeguard-staging-frontend<br />financeguard-staging-backend | financeguard-prod-frontend<br />financeguard-prod-backend |
+| **EKS Clusters** | financeguard-dev-frontend<br />financeguard-dev-backend | financeguard-stage-frontend<br />financeguard-stage-backend | financeguard-prod-frontend<br />financeguard-prod-backend |
 | **EKS VPC** | Frontend & Backend | Frontend & Backend | Frontend & Backend |
 | **K8s Version** | 1.30 | 1.30 | 1.30 |
 | **Instance Type** | `t3.medium` | `t3.large` | `m5.large` |

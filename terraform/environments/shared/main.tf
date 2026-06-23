@@ -80,7 +80,7 @@ resource "aws_ec2_transit_gateway_route_table" "inspection" {
   transit_gateway_id = aws_ec2_transit_gateway.this.id
 
   tags = merge(local.common_tags, {
-    Name = "tgw-inspection-route-table"
+    Name = "tgw-firewall-route-table"
   })
 }
 

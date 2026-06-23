@@ -37,3 +37,8 @@ output "transit_gateway_inspection_route_table_id" {
   description = "The ID of the TGW Inspection Route Table"
   value       = aws_ec2_transit_gateway_route_table.inspection.id
 }
+
+output "alb_dns_name" {
+  description = "The public DNS name of the ALB"
+  value       = module.alb.dns_name
+}

@@ -16,14 +16,14 @@ data "aws_ec2_transit_gateway_route_table" "spokes" {
 data "aws_ec2_transit_gateway_route_table" "inspection" {
   filter {
     name   = "tag:Name"
-    values = ["tgw-inspection-route-table"]
+    values = ["tgw-firewall-route-table"]
   }
 }
 
 data "aws_vpc" "frontend" {
   filter {
     name   = "tag:Name"
-    values = ["staging-frontend-vpc"]
+    values = ["stage-frontend-vpc"]
   }
 }
 
@@ -40,7 +40,7 @@ data "aws_subnets" "frontend_private" {
 data "aws_vpc" "backend" {
   filter {
     name   = "tag:Name"
-    values = ["staging-backend-vpc"]
+    values = ["stage-backend-vpc"]
   }
 }
 

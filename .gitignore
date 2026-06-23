@@ -43,3 +43,6 @@ pnpm-lock.yaml
 Pipfile.lock
 poetry.lock
 .terraform.lock.hcl
+
+# Kubernetes local configurations
+kube-config

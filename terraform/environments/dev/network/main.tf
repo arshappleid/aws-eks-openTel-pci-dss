@@ -29,7 +29,7 @@ data "aws_ec2_transit_gateway_route_table" "spokes" {
 data "aws_ec2_transit_gateway_route_table" "inspection" {
   filter {
     name   = "tag:Name"
-    values = ["tgw-inspection-route-table"]
+    values = ["tgw-firewall-route-table"]
   }
 }
 
@@ -42,7 +42,7 @@ module "frontend_network" {
   vpc_cidr        = "10.12.0.0/16"
   azs             = ["${var.aws_region}a", "${var.aws_region}b", "${var.aws_region}c"]
   private_subnets = ["10.12.1.0/24", "10.12.2.0/24", "10.12.3.0/24"]
-  tgw_subnets   = ["10.12.250.0/28", "10.12.250.16/28", "10.12.250.32/28"]
+  intra_subnets   = ["10.12.250.0/28", "10.12.250.16/28", "10.12.250.32/28"]
 
   single_nat_gateway = true
   cluster_name       = local.frontend_cluster_name

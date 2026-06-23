@@ -48,6 +48,12 @@ jobs:
 
             - name: Report Drift
               if: steps.plan.outputs.exitcode == 2
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   echo "Drift detected in ${{ matrix.environment }} ${{ matrix.layer }}!"
+                  gh issue create \
+                    --title "Terraform Drift Detected: ${{ matrix.environment }} / ${{ matrix.layer }}" \
+                    --body "Terraform has detected configuration drift in the **${{ matrix.environment }}** environment for the **${{ matrix.layer }}** layer. Please review the GitHub Actions logs." \
+                    --assignee "${{ github.repository_owner }}" || echo "Failed to create issue"
                   exit 1

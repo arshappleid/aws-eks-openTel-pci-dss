@@ -51,7 +51,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ secrets.TF_VERSION }}
-          
+
       - name: Terraform Init
         if: steps.filter.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
         run: |

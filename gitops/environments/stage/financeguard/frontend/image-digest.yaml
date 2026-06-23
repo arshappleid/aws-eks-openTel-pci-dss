@@ -1,0 +1,3 @@
+# Stage environment container image digest reference
+image:
+  digest: "sha256:placeholder-stage-digest"

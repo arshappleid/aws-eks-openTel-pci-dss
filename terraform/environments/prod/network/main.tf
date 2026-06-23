@@ -29,7 +29,7 @@ data "aws_ec2_transit_gateway_route_table" "spokes" {
 data "aws_ec2_transit_gateway_route_table" "inspection" {
   filter {
     name   = "tag:Name"
-    values = ["tgw-inspection-route-table"]
+    values = ["tgw-firewall-route-table"]
   }
 }
 

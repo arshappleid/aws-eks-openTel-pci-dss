@@ -46,3 +46,9 @@ variable "github_repo_url" {
   type        = string
   default     = "https://github.com/arshappleid/aws-eks-openTel-pci-dss"
 }
+
+variable "access_entries" {
+  description = "Map of access entries to add to the EKS cluster"
+  type        = any
+  default     = {}
+}

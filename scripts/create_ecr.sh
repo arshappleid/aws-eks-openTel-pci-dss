@@ -3,13 +3,13 @@
 # create_ecr.sh — Create an Amazon ECR repository with security best practices
 #
 # Usage:
-#   ./scripts/create_ecr.sh <repo-name> [--region <region>] [--env <dev|staging|prod>]
+#   ./scripts/create_ecr.sh <repo-name> [--region <region>] [--env <dev|stage|prod>]
 #
 # Examples:
 #   ./scripts/create_ecr.sh financeguard
 #   ./scripts/create_ecr.sh financeguard --region us-west-2
 #   ./scripts/create_ecr.sh financeguard --env prod
-#   ./scripts/create_ecr.sh financeguard --region us-east-1 --env staging
+#   ./scripts/create_ecr.sh financeguard --region us-east-1 --env stage
 # ==============================================================================
 
 set -euo pipefail
@@ -48,7 +48,7 @@ Arguments:
 
 Options:
   --region <region>      AWS region (default: ${DEFAULT_REGION})
-  --env <environment>    Target environment: dev, staging, prod (default: ${DEFAULT_ENV})
+  --env <environment>    Target environment: dev, stage, prod (default: ${DEFAULT_ENV})
   --kms-key <key-arn>    Use KMS encryption with the given key ARN (default: AES-256)
   --mutable-tags         Allow mutable image tags (not recommended for prod)
   --no-scan              Disable scan-on-push (not recommended)
@@ -118,8 +118,8 @@ if [[ -z "${REPO_NAME}" ]]; then
   usage
 fi
 
-if [[ ! "${ENVIRONMENT}" =~ ^(dev|staging|prod)$ ]]; then
-  error "Environment must be one of: dev, staging, prod"
+if [[ ! "${ENVIRONMENT}" =~ ^(dev|stage|prod)$ ]]; then
+  error "Environment must be one of: dev, stage, prod"
   exit 1
 fi
 
