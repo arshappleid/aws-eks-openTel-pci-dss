@@ -65,7 +65,7 @@ module "backend_network" {
   vpc_cidr        = "10.22.0.0/16"
   azs             = ["${var.aws_region}a", "${var.aws_region}b", "${var.aws_region}c"]
   private_subnets = ["10.22.1.0/24", "10.22.2.0/24", "10.22.3.0/24"]
-  tgw_subnets   = ["10.22.250.0/28", "10.22.250.16/28", "10.22.250.32/28"]
+  intra_subnets   = ["10.22.250.0/28", "10.22.250.16/28", "10.22.250.32/28"]
 
   single_nat_gateway = true
   cluster_name       = local.backend_cluster_name

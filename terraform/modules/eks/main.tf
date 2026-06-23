@@ -40,6 +40,28 @@ resource "aws_security_group_rule" "cluster_egress_all" {
   security_group_id = module.eks.cluster_security_group_id
 }
 
+# Allow ingress from the Inspection VPC (containing the central ALB) to EKS worker nodes
+resource "aws_security_group_rule" "node_ingress_inspection" {
+  description       = "Allow inbound TCP traffic from Inspection VPC CIDR"
+  type              = "ingress"
+  from_port         = 0
+  to_port           = 65535
+  protocol          = "tcp"
+  cidr_blocks       = ["10.0.0.0/16"]
+  security_group_id = module.eks.node_security_group_id
+}
+
+# Allow ingress from the Inspection VPC (containing the central ALB) to EKS control plane/cluster security group
+resource "aws_security_group_rule" "cluster_ingress_inspection" {
+  description       = "Allow inbound TCP traffic from Inspection VPC CIDR to cluster security group"
+  type              = "ingress"
+  from_port         = 0
+  to_port           = 65535
+  protocol          = "tcp"
+  cidr_blocks       = ["10.0.0.0/16"]
+  security_group_id = module.eks.cluster_security_group_id
+}
+
 # Automatically deploy ArgoCD into every cluster provisioned by this module
 resource "helm_release" "argocd" {
   name             = "argocd"
@@ -53,6 +75,75 @@ resource "helm_release" "argocd" {
   set {
     name  = "configs.repositories.financeguard.url"
     value = var.github_repo_url
+  }
+
+  # Restrict resource footprints to avoid namespace quota exhaustion
+  set {
+    name  = "controller.resources.requests.cpu"
+    value = "100m"
+  }
+  set {
+    name  = "controller.resources.requests.memory"
+    value = "128Mi"
+  }
+  set {
+    name  = "controller.resources.limits.cpu"
+    value = "500m"
+  }
+  set {
+    name  = "controller.resources.limits.memory"
+    value = "256Mi"
+  }
+
+  set {
+    name  = "server.resources.requests.cpu"
+    value = "50m"
+  }
+  set {
+    name  = "server.resources.requests.memory"
+    value = "64Mi"
+  }
+  set {
+    name  = "server.resources.limits.cpu"
+    value = "300m"
+  }
+  set {
+    name  = "server.resources.limits.memory"
+    value = "128Mi"
+  }
+
+  set {
+    name  = "repoServer.resources.requests.cpu"
+    value = "50m"
+  }
+  set {
+    name  = "repoServer.resources.requests.memory"
+    value = "64Mi"
+  }
+  set {
+    name  = "repoServer.resources.limits.cpu"
+    value = "300m"
+  }
+  set {
+    name  = "repoServer.resources.limits.memory"
+    value = "128Mi"
+  }
+
+  set {
+    name  = "redis.resources.requests.cpu"
+    value = "50m"
+  }
+  set {
+    name  = "redis.resources.requests.memory"
+    value = "64Mi"
+  }
+  set {
+    name  = "redis.resources.limits.cpu"
+    value = "300m"
+  }
+  set {
+    name  = "redis.resources.limits.memory"
+    value = "128Mi"
   }
 
   # Wait for EKS cluster and networking to be fully ready
@@ -129,6 +220,11 @@ resource "helm_release" "aws_lbc" {
   set {
     name  = "serviceAccount.name"
     value = "aws-load-balancer-controller"
+  }
+
+  set {
+    name  = "vpcId"
+    value = var.vpc_id
   }
 
   # Ensure Pod Identity and core cluster are fully active before running Helm install

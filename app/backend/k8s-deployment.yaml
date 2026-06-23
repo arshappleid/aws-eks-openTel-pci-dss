@@ -19,8 +19,7 @@ spec:
                   image: financeguard-backend:latest
                   imagePullPolicy: IfNotPresent
                   ports:
-                      - containerPort: 8000
-
+                      - containerPort: 80
                   # Environment variables
                   env:
                       - name: ENVIRONMENT
@@ -48,5 +47,5 @@ spec:
     ports:
         - protocol: TCP
           port: 80
-          targetPort: 8000
+          targetPort: 80
     type: ClusterIP

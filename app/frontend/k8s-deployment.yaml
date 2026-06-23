@@ -47,5 +47,4 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
-  # We use LoadBalancer here so AWS creates an ALB/NLB for public access
-  type: LoadBalancer
+  type: ClusterIP

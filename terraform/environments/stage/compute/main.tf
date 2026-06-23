@@ -96,11 +96,11 @@ module "backend_eks" {
 
 # Look up Target Groups from the Shared ALB
 data "aws_lb_target_group" "frontend" {
-  name = "tg-frontend-${var.env}"
+  name = "tg-frontend-${local.environment}"
 }
 
 data "aws_lb_target_group" "backend" {
-  name = "tg-backend-${var.env}"
+  name = "tg-backend-${local.environment}"
 }
 
 # Bind EKS Frontend Service to ALB Target Group
