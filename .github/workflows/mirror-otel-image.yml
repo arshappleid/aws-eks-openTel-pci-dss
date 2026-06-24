@@ -1,0 +1,72 @@
+name: Mirror OTEL Collector Image to ECR
+
+on:
+    # Run whenever the pinned tag changes in values.yaml
+    push:
+        branches: ["dev", "stage", "prod"]
+        paths:
+            - "helm/financeguard/values.yaml"
+            - ".github/workflows/mirror-otel-image.yml"
+    # Allow manual trigger to re-mirror on demand
+    workflow_dispatch:
+        inputs:
+            otel_tag:
+                description: "opentelemetry-collector-contrib tag to mirror"
+                required: false
+                default: "0.104.0"
+
+env:
+    AWS_REGION: us-east-1
+    AWS_ACCOUNT_ID: "866934333672"
+    GITHUB_ACTION_IAM_ROLE: arn:aws:iam::866934333672:role/GITHUB-ACTIONS-ALL-REPO
+    SOURCE_IMAGE: otel/opentelemetry-collector-contrib
+    ECR_REPO: otel-collector-contrib
+    OTEL_TAG: ${{ github.event.inputs.otel_tag || '0.104.0' }}
+
+permissions:
+    id-token: write
+    contents: read
+
+jobs:
+    mirror:
+        name: Mirror otel/opentelemetry-collector-contrib to ECR
+        runs-on: ubuntu-24.04
+        timeout-minutes: 15
+
+        steps:
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ env.GITHUB_ACTION_IAM_ROLE }}
+                  aws-region: ${{ env.AWS_REGION }}
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Create ECR repository if it does not exist
+              run: |
+                  aws ecr describe-repositories \
+                    --repository-names ${{ env.ECR_REPO }} \
+                    --region ${{ env.AWS_REGION }} 2>/dev/null \
+                  || aws ecr create-repository \
+                    --repository-name ${{ env.ECR_REPO }} \
+                    --region ${{ env.AWS_REGION }} \
+                    --image-scanning-configuration scanOnPush=true \
+                    --tags Key=ManagedBy,Value=github-actions Key=Project,Value=aws-eks-openTel-pci-dss
+
+            - name: Pull from Docker Hub
+              run: |
+                  docker pull ${{ env.SOURCE_IMAGE }}:${{ env.OTEL_TAG }}
+
+            - name: Tag and push to ECR
+              env:
+                  ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+              run: |
+                  docker tag \
+                    ${{ env.SOURCE_IMAGE }}:${{ env.OTEL_TAG }} \
+                    $ECR_REGISTRY/${{ env.ECR_REPO }}:${{ env.OTEL_TAG }}
+
+                  docker push $ECR_REGISTRY/${{ env.ECR_REPO }}:${{ env.OTEL_TAG }}
+
+                  echo "Mirrored image: $ECR_REGISTRY/${{ env.ECR_REPO }}:${{ env.OTEL_TAG }}"

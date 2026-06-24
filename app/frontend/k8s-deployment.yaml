@@ -43,7 +43,7 @@ spec:
                 #   Metrics → Prometheus remote-write  /prometheus/api/v1/write
                 #   Logs    → Loki push  /loki/loki/api/v1/push
                 - name: otel-collector
-                  image: otel/opentelemetry-collector-contrib:0.104.0
+                  image: 866934333672.dkr.ecr.us-east-1.amazonaws.com/otel-collector-contrib:0.104.0
                   imagePullPolicy: IfNotPresent
                   args:
                       - "--config=/etc/otel/otel-collector-config.yaml"
