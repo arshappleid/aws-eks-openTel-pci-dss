@@ -26,23 +26,6 @@ module "frontend_eks" {
   vpc_id          = data.aws_vpc.frontend.id
   subnet_ids      = data.aws_subnets.frontend_private.ids
 
-
-  eks_managed_node_groups = {
-    frontend_nodes = {
-      min_size     = 2
-      max_size     = 6
-      desired_size = 2
-
-      instance_types = ["t3.large"]
-      capacity_type  = "SPOT"
-
-      labels = {
-        Environment = local.environment
-        Tier        = "frontend"
-      }
-    }
-  }
-
   tags = merge(local.tags, { Tier = "frontend" })
 }
 
@@ -59,23 +42,6 @@ module "backend_eks" {
   cluster_version = var.kubernetes_version
   vpc_id          = data.aws_vpc.backend.id
   subnet_ids      = data.aws_subnets.backend_private.ids
-
-
-  eks_managed_node_groups = {
-    backend_nodes = {
-      min_size     = 2
-      max_size     = 6
-      desired_size = 2
-
-      instance_types = ["t3.large"]
-      capacity_type  = "SPOT"
-
-      labels = {
-        Environment = local.environment
-        Tier        = "backend"
-      }
-    }
-  }
 
   tags = merge(local.tags, { Tier = "backend" })
 }

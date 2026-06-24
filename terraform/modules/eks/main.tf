@@ -1,4 +1,111 @@
 
+# IAM role for EKS Auto Mode nodes — broad permissions for operational access.
+resource "aws_iam_role" "eks_auto_node" {
+  name = "${var.cluster_name}-auto-node-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+
+  tags = var.tags
+}
+
+locals {
+  node_policy_arns = [
+    # EKS Auto Mode required policies
+    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodeMinimalPolicy",
+    # ECR — full read access to pull any image in the account
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+    # VPC CNI — required for pod networking
+    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+    # SSM — remote shell access to nodes via Session Manager
+    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+    # CloudWatch — emit logs and metrics from nodes/pods
+    "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+    # S3 — read access (e.g. pulling configs, bootstrap scripts)
+    "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess",
+  ]
+}
+
+resource "aws_iam_role_policy_attachment" "eks_auto_node" {
+  for_each   = toset(local.node_policy_arns)
+  role       = aws_iam_role.eks_auto_node.name
+  policy_arn = each.value
+}
+
+# Inline policy granting full EC2, EKS, and ECR describe/list actions
+# needed by Auto Mode node lifecycle management and the OTEL sidecar.
+resource "aws_iam_role_policy" "eks_auto_node_inline" {
+  name = "${var.cluster_name}-auto-node-inline"
+  role = aws_iam_role.eks_auto_node.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "EC2Describe"
+        Effect = "Allow"
+        Action = [
+          "ec2:Describe*",
+          "ec2:List*",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "EKSDescribe"
+        Effect = "Allow"
+        Action = [
+          "eks:Describe*",
+          "eks:List*",
+          "eks:AccessKubernetesApi",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "ECRFull"
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "CloudMapOTEL"
+        Effect = "Allow"
+        Action = [
+          "servicediscovery:Discover*",
+          "servicediscovery:Get*",
+          "servicediscovery:List*",
+          "route53:GetHostedZone",
+          "route53:ListHostedZones",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "CloudWatchLogs"
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams",
+        ]
+        Resource = "*"
+      },
+    ]
+  })
+}
+
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 21.0"
@@ -20,15 +127,22 @@ module "eks" {
 
   node_iam_role_use_name_prefix = false
 
-
+  # EKS Auto Mode — nodes are provisioned on-demand when pods are scheduled.
+  # The general-purpose node pool covers both frontend and backend workloads.
   compute_config = {
-    enabled    = true
-    node_pools = ["general-purpose"]
+    enabled       = true
+    node_pools    = ["general-purpose"]
+    node_role_arn = aws_iam_role.eks_auto_node.arn
   }
 
   access_entries = var.access_entries
 
   tags = var.tags
+
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_auto_node,
+    aws_iam_role_policy.eks_auto_node_inline,
+  ]
 }
 
 
