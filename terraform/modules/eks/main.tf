@@ -51,6 +51,29 @@ resource "aws_security_group_rule" "node_ingress_inspection" {
   security_group_id = module.eks.cluster_primary_security_group_id
 }
 
+# Allow SSH ingress from the Inspection VPC (containing the Bastion) to EKS worker nodes
+resource "aws_security_group_rule" "node_ssh_ingress" {
+  description       = "Allow inbound SSH from Inspection VPC CIDR to worker nodes"
+  type              = "ingress"
+  from_port         = 22
+  to_port           = 22
+  protocol          = "tcp"
+  cidr_blocks       = ["192.178.0.0/16"]
+  security_group_id = module.eks.node_security_group_id
+}
+
+# Allow SSH ingress from the Inspection VPC (containing the Bastion) to EKS primary security group (which is used by EKS Auto Mode nodes)
+resource "aws_security_group_rule" "node_ssh_ingress_primary" {
+  description       = "Allow inbound SSH from Inspection VPC CIDR to EKS primary security group"
+  type              = "ingress"
+  from_port         = 22
+  to_port           = 22
+  protocol          = "tcp"
+  cidr_blocks       = ["192.178.0.0/16"]
+  security_group_id = module.eks.cluster_primary_security_group_id
+}
+
+
 
 # Allow ingress from the Inspection VPC (containing the central ALB) to EKS control plane/cluster security group
 resource "aws_security_group_rule" "cluster_ingress_inspection" {

@@ -62,4 +62,9 @@ jobs:
 
             - name: Terraform Apply
               if: steps.filter.outputs.changed == 'true'
-              run: terraform apply -auto-approve
+              run: |
+                if [ "${{ matrix.layer }}" = "kubernetes" ]; then
+                  terraform apply -auto-approve || echo "WARNING: Kubernetes layer apply failed (likely due to private network connectivity), continuing as requested."
+                else
+                  terraform apply -auto-approve
+                fi

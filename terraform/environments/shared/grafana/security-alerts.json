@@ -1,0 +1,252 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "title": "Total Security Alerts",
+      "type": "stat",
+      "datasource": {
+        "type": "opensearch",
+        "uid": "opensearch-wazuh"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "opensearch",
+            "uid": "opensearch-wazuh"
+          },
+          "query": "rule.level:>5",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "id": 2,
+      "title": "Critical Alerts (Level 12+)",
+      "type": "stat",
+      "datasource": {
+        "type": "opensearch",
+        "uid": "opensearch-wazuh"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "opensearch",
+            "uid": "opensearch-wazuh"
+          },
+          "query": "rule.level:>=12",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "id": 3,
+      "title": "Active Wazuh Agents",
+      "type": "stat",
+      "datasource": {
+        "type": "opensearch",
+        "uid": "opensearch-wazuh"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "opensearch",
+            "uid": "opensearch-wazuh"
+          },
+          "query": "*",
+          "metrics": [
+            {
+              "type": "cardinality",
+              "field": "agent.id"
+            }
+          ],
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": []
+        },
+        "overrides": []
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "id": 4,
+      "title": "Security Alerts over Time",
+      "type": "timeseries",
+      "datasource": {
+        "type": "opensearch",
+        "uid": "opensearch-wazuh"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "opensearch",
+            "uid": "opensearch-wazuh"
+          },
+          "query": "rule.level:>5",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "id": 5,
+      "title": "Top Alert Categories",
+      "type": "barchart",
+      "datasource": {
+        "type": "opensearch",
+        "uid": "opensearch-wazuh"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "opensearch",
+            "uid": "opensearch-wazuh"
+          },
+          "query": "*",
+          "bucketAggs": [
+            {
+              "type": "terms",
+              "field": "rule.groups",
+              "settings": {
+                "size": "10"
+              }
+            }
+          ],
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "id": 6,
+      "title": "Security Events Log Table",
+      "type": "table",
+      "datasource": {
+        "type": "opensearch",
+        "uid": "opensearch-wazuh"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "opensearch",
+            "uid": "opensearch-wazuh"
+          },
+          "query": "*",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["security", "wazuh"],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Wazuh Security Monitoring",
+  "version": 1
+}

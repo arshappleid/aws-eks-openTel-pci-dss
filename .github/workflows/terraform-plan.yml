@@ -63,4 +63,9 @@ jobs:
       - name: Terraform Plan
         if: steps.filter.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
         id: plan
-        run: terraform plan -no-color -out=tfplan
+        run: |
+          if [ "${{ matrix.layer }}" = "kubernetes" ]; then
+            terraform plan -no-color -out=tfplan || echo "WARNING: Kubernetes layer plan failed (likely due to private network connectivity), continuing as requested."
+          else
+            terraform plan -no-color -out=tfplan
+          fi

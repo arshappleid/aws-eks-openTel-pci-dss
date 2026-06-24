@@ -51,26 +51,22 @@ resource "aws_security_group" "bastion" {
 
 resource "aws_instance" "bastion" {
   ami           = data.aws_ami.amazon_linux_2.id
-  instance_type = "t3.micro"
+  instance_type = "t3.large"
+  key_name      = "prab-key-pair"
 
   instance_market_options {
     market_type = "spot"
   }
+
   
   # Deploy to the first public subnet of the shared inspection VPC
   subnet_id     = module.inspection_vpc.public_subnets[0]
 
   vpc_security_group_ids = [aws_security_group.bastion.id]
 
-  user_data = templatefile("${path.module}/bastion-init.sh", {
-    dashboards_yaml = file("${path.module}/grafana/dashboards.yaml")
-    eks_infra_json  = file("${path.module}/grafana/eks-infrastructure.json")
-    app_perf_json   = file("${path.module}/grafana/application-performance.json")
-    logs_json       = file("${path.module}/grafana/log-analytics.json")
-    alerting_yaml   = templatefile("${path.module}/grafana/alerting.yaml", {
-      emails = trimspace(file("${path.module}/grafana/alert-emails.txt"))
-    })
-  })
+  iam_instance_profile   = aws_iam_instance_profile.bastion.name
+
+  user_data = file("${path.module}/bastion-init.sh")
 
 
 
@@ -87,5 +83,76 @@ resource "aws_eip" "bastion" {
 
   tags = merge(local.common_tags, {
     Name = "bastion-eip"
+  })
+}
+
+# IAM Role for Bastion Host
+resource "aws_iam_role" "bastion" {
+  name = "bastion-server-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = merge(local.common_tags, {
+    Name = "bastion-server-role"
+  })
+}
+
+# IAM Policy for S3 Logs Bucket Access
+resource "aws_iam_policy" "bastion_s3" {
+  name        = "bastion-s3-logs-read-policy"
+  description = "Allows Bastion host to read logs from prab-infrastrcuture-logs bucket"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::prab-infrastrcuture-logs",
+          "arn:aws:s3:::prab-infrastrcuture-logs/*"
+        ]
+      }
+    ]
+  })
+
+  tags = merge(local.common_tags, {
+    Name = "bastion-s3-logs-read-policy"
+  })
+}
+
+# Attach S3 Read Policy to Bastion Role
+resource "aws_iam_role_policy_attachment" "bastion_s3" {
+  role       = aws_iam_role.bastion.name
+  policy_arn = aws_iam_policy.bastion_s3.arn
+}
+
+# Attach AWS SSM Managed Policy to Bastion Role (required for SSM session connection)
+resource "aws_iam_role_policy_attachment" "bastion_ssm" {
+  role       = aws_iam_role.bastion.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+# IAM Instance Profile for Bastion Host
+resource "aws_iam_instance_profile" "bastion" {
+  name = "bastion-server-instance-profile"
+  role = aws_iam_role.bastion.name
+
+  tags = merge(local.common_tags, {
+    Name = "bastion-server-instance-profile"
   })
 }

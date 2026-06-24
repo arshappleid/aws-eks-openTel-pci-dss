@@ -391,3 +391,171 @@ resource "helm_release" "backend_otel_collector" {
   ]
 }
 
+# Fluent Bit for Frontend EKS
+resource "helm_release" "frontend_fluent_bit" {
+  provider   = helm.frontend
+  name       = "fluent-bit"
+  repository = "https://fluent.github.io/helm-charts"
+  chart      = "fluent-bit"
+  namespace  = "kube-system"
+  version    = "0.47.0"
+
+  values = [
+    <<-EOT
+    config:
+      service: |
+        [SERVICE]
+            Flush         1
+            Log_Level     info
+            Daemon        off
+            Parsers_File  parsers.conf
+
+      inputs: |
+        [INPUT]
+            Name              tail
+            Tag               kube.*
+            Path              /var/log/containers/*.log
+            Parser            docker
+            DB                /var/log/flb_kube.db
+            Mem_Buf_Limit     50MB
+            Skip_Long_Lines   On
+
+      filters: |
+        [FILTER]
+            Name                kubernetes
+            Match               kube.*
+            Kube_URL            https://kubernetes.default.svc:443
+            Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+            Kube_Tag_Prefix     kube.var.log.containers.
+            Merge_Log           On
+            Keep_Log            Off
+            K8S-Logging.Parser  On
+            K8S-Logging.Exclude On
+
+      outputs: |
+        [OUTPUT]
+            Name            opensearch
+            Match           *
+            Host            otel-collector.financeguard.local
+            Port            80
+            Path            /opensearch
+            Index           financeguard-stage-frontend-logs
+            Type            _doc
+            TLS             Off
+            Suppress_Type   On
+
+        [OUTPUT]
+            Name            syslog
+            Match           *
+            Host            otel-collector.financeguard.local
+            Port            514
+            Mode            udp
+            Syslog_Format   rfc5424
+            Syslog_Severity_Key  level
+            Syslog_Facility_Key  facility
+    EOT
+  ]
+}
+
+# Fluent Bit for Backend EKS
+resource "helm_release" "backend_fluent_bit" {
+  provider   = helm.backend
+  name       = "fluent-bit"
+  repository = "https://fluent.github.io/helm-charts"
+  chart      = "fluent-bit"
+  namespace  = "kube-system"
+  version    = "0.47.0"
+
+  values = [
+    <<-EOT
+    config:
+      service: |
+        [SERVICE]
+            Flush         1
+            Log_Level     info
+            Daemon        off
+            Parsers_File  parsers.conf
+
+      inputs: |
+        [INPUT]
+            Name              tail
+            Tag               kube.*
+            Path              /var/log/containers/*.log
+            Parser            docker
+            DB                /var/log/flb_kube.db
+            Mem_Buf_Limit     50MB
+            Skip_Long_Lines   On
+
+      filters: |
+        [FILTER]
+            Name                kubernetes
+            Match               kube.*
+            Kube_URL            https://kubernetes.default.svc:443
+            Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+            Kube_Tag_Prefix     kube.var.log.containers.
+            Merge_Log           On
+            Keep_Log            Off
+            K8S-Logging.Parser  On
+            K8S-Logging.Exclude On
+
+      outputs: |
+        [OUTPUT]
+            Name            opensearch
+            Match           *
+            Host            otel-collector.financeguard.local
+            Port            80
+            Path            /opensearch
+            Index           financeguard-stage-backend-logs
+            Type            _doc
+            TLS             Off
+            Suppress_Type   On
+
+        [OUTPUT]
+            Name            syslog
+            Match           *
+            Host            otel-collector.financeguard.local
+            Port            514
+            Mode            udp
+            Syslog_Format   rfc5424
+            Syslog_Severity_Key  level
+            Syslog_Facility_Key  facility
+    EOT
+  ]
+}
+
+# EKS Access Entries moved from Compute Layer to Kubernetes Layer
+resource "aws_eks_access_entry" "github_actions_frontend" {
+  cluster_name  = data.aws_eks_cluster.frontend.name
+  principal_arn = var.github_actions_role_arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "github_actions_frontend" {
+  cluster_name  = data.aws_eks_cluster.frontend.name
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+  principal_arn = var.github_actions_role_arn
+
+  access_scope {
+    type = "cluster"
+  }
+}
+
+resource "aws_eks_access_entry" "github_actions_backend" {
+  cluster_name  = data.aws_eks_cluster.backend.name
+  principal_arn = var.github_actions_role_arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "github_actions_backend" {
+  cluster_name  = data.aws_eks_cluster.backend.name
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+  principal_arn = var.github_actions_role_arn
+
+  access_scope {
+    type = "cluster"
+  }
+}
+
+

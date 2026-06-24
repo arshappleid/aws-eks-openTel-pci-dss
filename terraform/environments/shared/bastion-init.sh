@@ -4,7 +4,7 @@
 # ==============================================================================
 set -euo pipefail
 
-# 1. System updates and Docker/Ansible installation
+# 1. System updates and Docker/Ansible/docker-compose installation
 yum update -y
 amazon-linux-extras install docker -y
 amazon-linux-extras install ansible2 -y
@@ -12,6 +12,14 @@ service docker start
 usermod -a -G docker ec2-user
 chkconfig docker on
 
+# Install docker-compose
+curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+# Optimize memory settings for Wazuh indexer / OpenSearch
+sysctl -w vm.max_map_count=262144
+echo "vm.max_map_count=262144" >> /etc/sysctl.conf
 
 # 2. Network configuration
 docker network create monitoring || true
@@ -39,6 +47,24 @@ http {
 
         location /loki/ {
             proxy_pass http://loki:3100/;
+        }
+
+        location /opensearch/ {
+            proxy_pass https://wazuh.indexer:9200/;
+            proxy_ssl_verify off;
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /wazuh/ {
+            proxy_pass https://wazuh.dashboard:5601/;
+            proxy_ssl_verify off;
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
         }
         
         location / {
@@ -83,28 +109,20 @@ GRAFANA_DS
 
 # Create Grafana dashboards provisioning configuration
 mkdir -p /opt/grafana/provisioning/dashboards
-cat << 'GRAFANA_DB_PROV' > /opt/grafana/provisioning/dashboards/dashboards.yaml
-${dashboards_yaml}
-GRAFANA_DB_PROV
-
-cat << 'GRAFANA_DB_INFRA' > /opt/grafana/provisioning/dashboards/eks-infrastructure.json
-${eks_infra_json}
-GRAFANA_DB_INFRA
-
-cat << 'GRAFANA_DB_PERF' > /opt/grafana/provisioning/dashboards/application-performance.json
-${app_perf_json}
-GRAFANA_DB_PERF
-
-cat << 'GRAFANA_DB_LOGS' > /opt/grafana/provisioning/dashboards/log-analytics.json
-${logs_json}
-GRAFANA_DB_LOGS
-
-
-# Create Grafana alerting provisioning configuration
 mkdir -p /opt/grafana/provisioning/alerting
-cat << 'GRAFANA_ALERTING' > /opt/grafana/provisioning/alerting/alerting.yaml
-${alerting_yaml}
-GRAFANA_ALERTING
+
+# Pull configurations dynamically from GitHub to bypass user_data sizes
+git clone https://github.com/arshappleid/aws-eks-openTel-pci-dss.git /opt/aws-eks-openTel-pci-dss
+
+cp /opt/aws-eks-openTel-pci-dss/terraform/environments/shared/grafana/dashboards.yaml /opt/grafana/provisioning/dashboards/dashboards.yaml
+cp /opt/aws-eks-openTel-pci-dss/terraform/environments/shared/grafana/eks-infrastructure.json /opt/grafana/provisioning/dashboards/eks-infrastructure.json
+cp /opt/aws-eks-openTel-pci-dss/terraform/environments/shared/grafana/application-performance.json /opt/grafana/provisioning/dashboards/application-performance.json
+cp /opt/aws-eks-openTel-pci-dss/terraform/environments/shared/grafana/log-analytics.json /opt/grafana/provisioning/dashboards/log-analytics.json
+cp /opt/aws-eks-openTel-pci-dss/terraform/environments/shared/grafana/security-alerts.json /opt/grafana/provisioning/dashboards/security-alerts.json
+
+# Copy and compile alerting configuration by expanding emails placeholders
+EMAILS=$(cat /opt/aws-eks-openTel-pci-dss/terraform/environments/shared/grafana/alert-emails.txt | tr -d '\n\r')
+sed "s/\${emails}/$EMAILS/g" /opt/aws-eks-openTel-pci-dss/terraform/environments/shared/grafana/alerting.yaml > /opt/grafana/provisioning/alerting/alerting.yaml
 
 
 # 6. Start Grafana with mounted provisioning configs
@@ -129,3 +147,23 @@ docker run -d --name loki --restart always --network monitoring \
 docker run -d --name nginx --restart always --network monitoring -p 80:80 \
   -v /opt/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
   nginx
+
+# 10. Clone and start Wazuh Single-Node Deployment (includes OpenSearch indexer)
+git clone https://github.com/wazuh/wazuh-docker.git -b v4.14.5 /opt/wazuh-docker
+cd /opt/wazuh-docker/single-node
+
+# Expose port 514/udp in docker-compose.yml for syslog input
+sed -i 's/- "1514:1514"/- "1514:1514"\n      - "514:514\/udp"/' docker-compose.yml
+
+docker-compose -f generate-indexer-certs.yml run --rm generator
+docker-compose up -d
+
+# Wait for Wazuh Manager to initialize, then inject the syslog remote ingestion block in ossec.conf
+sleep 45
+docker exec wazuh.manager sed -i '/<\/ossec_config>/i \  <remote>\n    <connection>syslog<\/connection>\n    <port>514<\/port>\n    <protocol>udp<\/protocol>\n    <allowed-ips>10.0.0.0\/8<\/allowed-ips>\n  <\/remote>' /var/ossec/etc/ossec.conf
+docker restart wazuh.manager
+
+# Connect Nginx to the wazuh network to resolve containers
+sleep 15
+docker network connect single-node_default nginx || true
+
