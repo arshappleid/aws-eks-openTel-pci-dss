@@ -79,12 +79,30 @@ datasources:
     editable: true
 GRAFANA_DS
 
+# Create Grafana dashboards provisioning configuration
+mkdir -p /opt/grafana/provisioning/dashboards
+cat << 'GRAFANA_DB_PROV' > /opt/grafana/provisioning/dashboards/dashboards.yaml
+${dashboards_yaml}
+GRAFANA_DB_PROV
+
+cat << 'GRAFANA_DB_JSON' > /opt/grafana/provisioning/dashboards/financeguard-dashboard.json
+${dashboard_json}
+GRAFANA_DB_JSON
+
+# Create Grafana alerting provisioning configuration
+mkdir -p /opt/grafana/provisioning/alerting
+cat << 'GRAFANA_ALERTING' > /opt/grafana/provisioning/alerting/alerting.yaml
+${alerting_yaml}
+GRAFANA_ALERTING
+
+
 # 6. Start Grafana with mounted provisioning configs
 docker run -d --name grafana --restart always --network monitoring \
   -e "GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/grafana/" \
   -e "GF_SERVER_SERVE_FROM_SUB_PATH=true" \
-  -v /opt/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro \
+  -v /opt/grafana/provisioning:/etc/grafana/provisioning:ro \
   grafana/grafana
+
 
 # 7. Start Jaeger all-in-one with telemetry ingest ports exposed
 docker run -d --name jaeger --restart always --network monitoring \

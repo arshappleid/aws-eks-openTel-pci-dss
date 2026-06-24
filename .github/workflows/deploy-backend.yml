@@ -186,8 +186,13 @@ jobs:
             - name: Update Kubeconfig for EKS
               run: aws eks update-kubeconfig --name financeguard-${{ github.ref_name }}-backend --region ${{ env.AWS_REGION }}
 
+            - name: Inject Dynamic Environment Variable
+              run: |
+                sed -i '/name: ENVIRONMENT/{n;s/value: "dev"/value: "${{ github.ref_name }}"/}' app/backend/k8s-deployment.yaml
+
             - name: Apply Kubernetes Manifests
               run: kubectl apply -f app/backend/k8s-deployment.yaml
+
 
             - name: Update Deployment Image
               run: |

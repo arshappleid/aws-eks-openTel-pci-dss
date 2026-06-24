@@ -62,7 +62,15 @@ resource "aws_instance" "bastion" {
 
   vpc_security_group_ids = [aws_security_group.bastion.id]
 
-  user_data = file("${path.module}/bastion-init.sh")
+  user_data = templatefile("${path.module}/bastion-init.sh", {
+    dashboards_yaml = file("${path.module}/grafana/dashboards.yaml")
+    dashboard_json  = file("${path.module}/grafana/financeguard-dashboard.json")
+    alerting_yaml   = templatefile("${path.module}/grafana/alerting.yaml", {
+      emails = trimspace(file("${path.module}/grafana/alert-emails.txt"))
+    })
+  })
+
+
 
   tags = merge(local.common_tags, {
 

@@ -167,8 +167,13 @@ jobs:
             - name: Update Kubeconfig for EKS
               run: aws eks update-kubeconfig --name financeguard-${{ github.ref_name }}-frontend --region ${{ env.AWS_REGION }}
 
+            - name: Inject Dynamic API URL
+              run: |
+                sed -i 's|/stage/api/|/${{ github.ref_name }}/api/|g' app/frontend/k8s-deployment.yaml
+
             - name: Apply Kubernetes Manifests
               run: kubectl apply -f app/frontend/k8s-deployment.yaml
+
 
             - name: Update Deployment Image
               run: |

@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'FinanceGuard Dashboards'
+    orgId: 1
+    folder: 'FinanceGuard'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
