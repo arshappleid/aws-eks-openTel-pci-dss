@@ -67,6 +67,7 @@ resource "aws_instance" "bastion" {
   iam_instance_profile   = aws_iam_instance_profile.bastion.name
 
   user_data = file("${path.module}/bastion-init.sh")
+  user_data_replace_on_change = true
 
 
 

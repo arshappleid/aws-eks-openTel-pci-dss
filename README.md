@@ -118,11 +118,33 @@ All monitoring, metrics, logging, tracing, and continuous delivery tools are hos
 | **Prometheus** | `http://<bastion-ip>/prometheus/` | Scraping status, target health, and query editor |
 | **Jaeger** | `http://<bastion-ip>/jaeger/` | Distributed tracing search and dependency graphs |
 | **Loki** | `http://<bastion-ip>/loki/` | Container log ingestion api path |
+| **Wazuh** | `http://<bastion-ip>/wazuh/` | Security information and event management (SIEM) dashboard |
+| **OpenSearch** | `http://<bastion-ip>/opensearch/` | Central security and logs indexer database API |
 | **Argo CD** | `http://<bastion-ip>/argocd/` | GitOps continuous delivery console (optional proxy route) |
+
+
+---
+
+## Cost Estimate Matrix
+
+The following table summarizes the estimated AWS infrastructure costs across all environments (based on standard `us-east-1` pricing):
+
+| Environment | Primary Resources | Compute Type | Daily Cost (Est.) | Monthly Cost (Est.) |
+|-------------|-------------------|--------------|-------------------|---------------------|
+| **Shared (Inspection)** | 1x `t3.large` Bastion, 1x ALB, 1x NAT Gateway, Transit Gateway Router | Spot / Pay-per-use | ~$6.12 | ~$186.02 |
+| **Dev** | 2x EKS Clusters, 4x `t3.medium` worker nodes, 2x NAT Gateways | Spot (Nodes) | ~$11.06 | ~$336.20 |
+| **Stage** | 2x EKS Clusters, 4x `t3.large` worker nodes, 2x NAT Gateways | Spot (Nodes) | ~$12.36 | ~$375.70 |
+| **Prod** | 2x EKS Clusters, 6x `m5.large` worker nodes, 6x NAT Gateways (Multi-AZ) | On-Demand (HA) | ~$29.00 | ~$881.58 |
+| **Total Project** | **All environments running concurrently** | **Hybrid** | **~$58.54** | **~$1,779.50** |
+
+> [!TIP]
+> * Dev and Stage environments utilize AWS Spot Instances for worker nodes, reducing compute costs by up to 75%.
+> * Prod environment enforces On-Demand compute and Multi-AZ NAT Gateways to meet strict PCI-DSS Availability and HA constraints.
 
 ---
 
 ## Contributing
+
 
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on pull requests, issue reporting, and branching strategy.

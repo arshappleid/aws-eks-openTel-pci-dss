@@ -7,6 +7,9 @@ module "eks" {
   name    = var.cluster_name
   kubernetes_version = var.cluster_version
 
+  # Enable all EKS control plane logs (PCI-DSS compliance)
+  enabled_log_types = ["audit", "api", "authenticator", "controllerManager", "scheduler"]
+
   # Enable cluster endpoint public access for administration, but keep private access enabled
   endpoint_public_access   = var.cluster_endpoint_public_access
   enable_cluster_creator_admin_permissions  = true

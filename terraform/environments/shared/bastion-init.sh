@@ -167,3 +167,22 @@ docker restart wazuh.manager
 sleep 15
 docker network connect single-node_default nginx || true
 
+# 11. Install and configure Wazuh Agent on the Bastion Host itself to monitor and forward logs
+rpm --import https://packages.wazuh.com/key/GPG-KEY-WAZUH
+cat > /etc/yum.repos.d/wazuh.repo << 'EOF'
+[wazuh]
+name=Wazuh repository
+baseurl=https://packages.wazuh.com/4.x/yum/
+gpgcheck=1
+gpgkey=https://packages.wazuh.com/key/GPG-KEY-WAZUH
+enabled=1
+EOF
+
+# Install Wazuh Agent matching the manager version 4.14.5
+WAZUH_MANAGER="127.0.0.1" yum install wazuh-agent-4.14.5 -y
+
+# Enable and start Wazuh Agent
+systemctl daemon-reload
+systemctl enable wazuh-agent
+systemctl start wazuh-agent
+

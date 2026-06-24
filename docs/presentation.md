@@ -75,3 +75,21 @@ Zero-code auto-instrumentation using the **OpenTelemetry (OTel)** standard.
 - **No Public EKS APIs:** Clusters are private; accessed securely via Bastion or authorized IAM roles.
 - **Cost Optimization:** Automatic spot-instance fallback for non-critical infrastructure.
 - **Infrastructure as Code (IaC):** 100% of the AWS infrastructure and GitHub Actions workflows are codified and version controlled.
+
+---
+
+# 💰 AWS Cost Estimate Matrix
+
+Summary of estimated AWS infrastructure costs across all environments (based on standard `us-east-1` pricing):
+
+| Environment | Compute Type | Daily Cost (Est.) | Monthly Cost (Est.) |
+|-------------|--------------|-------------------|---------------------|
+| **Shared (Inspection)** | Spot / Pay-per-use | ~$6.12 | ~$186.02 |
+| **Dev** | Spot (Nodes) | ~$11.06 | ~$336.20 |
+| **Stage** | Spot (Nodes) | ~$12.36 | ~$375.70 |
+| **Prod** | On-Demand (HA) | ~$29.00 | ~$881.58 |
+| **Total Project** | **Hybrid** | **~$58.54** | **~$1,779.50** |
+
+- **Dev & Stage:** Utilize AWS Spot Instances for worker nodes, reducing compute costs by up to 75%.
+- **Prod:** Enforces On-Demand compute and Multi-AZ NAT Gateways to meet strict PCI-DSS Availability and HA constraints.
+
