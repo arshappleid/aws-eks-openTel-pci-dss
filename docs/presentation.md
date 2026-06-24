@@ -22,7 +22,8 @@ Our end-to-end PCI-DSS compliant architecture integrates the following core tool
 | **IaC** | **Terraform** | Automated provisioning of AWS environments (`dev`, `stage`, `prod`, `shared`). |
 | **Orchestration** | **AWS EKS** | Managed Kubernetes hosting distinct frontend & backend microservices. |
 | **Networking** | **Transit Gateway** | Central hub routing traffic through the shared Inspection VPC spoke. |
-| **Ingress** | **Nginx** | Reverse-proxying public web traffic to internal application endpoints. |
+| **App Ingress** | **AWS ALB** | Path-based routing (`/stage/*`, `/dev/*`) with URL prefix stripping to EKS clusters. |
+| **Monitoring Ingress** | **Nginx** | Reverse-proxying observability tool traffic (Grafana, Prometheus, Jaeger, Loki) on the Bastion. |
 | **Metrics** | **Prometheus / Grafana** | Unified metrics scraping, dashboards, and alerting. |
 | **Logs & Tracing** | **Loki / Jaeger** | Central container log aggregation and distributed tracing. |
 
@@ -77,11 +78,31 @@ Our end-to-end PCI-DSS compliant architecture integrates the following core tool
 
 ---
 
-# 🚪 Bastion Server & Ingress
+# 🚪 Application Ingress — AWS ALB
+
+- **Single Public Entry Point:** `inspection-alb` lives in the Inspection VPC public subnet and handles all inbound HTTP traffic on port 80.
+- **Path-Based Routing (7 rules):** Each environment and tier gets its own priority rule:
+  - `/dev/api/*` → `tg-backend-dev` &nbsp;|&nbsp; `/stage/api/*` → `tg-backend-stage` &nbsp;|&nbsp; `/prod/api/*` → `tg-backend-prod`
+  - `/dev/*` → `tg-frontend-dev` &nbsp;|&nbsp; `/stage/*` → `tg-frontend-stage` &nbsp;|&nbsp; `/prod/*` → `tg-frontend-prod`
+- **URL Prefix Stripping:** Each rule uses a **Transform URL path rewrite** (e.g. `/stage/(.*)` → `/$1`) so EKS pods receive clean paths at `/`.
+- **IP Target Groups:** Targets registered directly by pod IP — no NodePort needed.
+
+![bg right:52% fit](images/alb.png)
+
+---
+
+# 🖥️ Bastion Server & Monitoring Ingress
 
 - **Spot Instance Compute:** Runs on a `c5.2xlarge` AWS Spot Instance (8 vCPUs, 16GB RAM) to optimize performance-to-cost.
 - **Network Placement:** Located in the shared Inspection VPC public subnet with a static Elastic IP (EIP).
-- **Nginx Reverse Proxy:** Routes incoming traffic seamlessly on standard Port 80 based on URL sub-paths, hiding internal application ports from the internet.
+- **Nginx Reverse Proxy (monitoring only):** Routes observability tool traffic on Port 80 by sub-path — completely separate from application traffic which goes through the ALB.
+
+| Sub-path | Backend |
+|---|---|
+| `/grafana/` | Grafana :3000 |
+| `/prometheus/` | Prometheus :9090 |
+| `/jaeger/` | Jaeger :16686 |
+| `/loki/` | Loki :3100 |
 
 ---
 
