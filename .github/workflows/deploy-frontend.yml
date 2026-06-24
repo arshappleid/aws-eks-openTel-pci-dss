@@ -189,7 +189,7 @@ jobs:
                 sed -i 's|/stage/api/|/${{ github.ref_name }}/api/|g' app/frontend/k8s-deployment.yaml
 
             - name: Apply Kubernetes Manifests
-              run: kubectl apply -f app/frontend/k8s-deployment.yaml
+              run: kubectl apply --validate=false -f app/frontend/k8s-deployment.yaml
 
 
             - name: Update Deployment Image

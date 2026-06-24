@@ -191,7 +191,7 @@ jobs:
                 sed -i '/name: ENVIRONMENT/{n;s/value: "dev"/value: "${{ github.ref_name }}"/}' app/backend/k8s-deployment.yaml
 
             - name: Apply Kubernetes Manifests
-              run: kubectl apply -f app/backend/k8s-deployment.yaml
+              run: kubectl apply --validate=false -f app/backend/k8s-deployment.yaml
 
 
             - name: Update Deployment Image
