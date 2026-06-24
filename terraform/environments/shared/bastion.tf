@@ -29,6 +29,14 @@ resource "aws_security_group" "bastion" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "Allow all traffic from private CIDRs"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["10.0.0.0/8", "192.178.0.0/16"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -99,7 +107,8 @@ resource "aws_instance" "bastion" {
                 --storage.tsdb.path=/prometheus \
                 --web.console.libraries=/usr/share/prometheus/console_libraries \
                 --web.console.templates=/usr/share/prometheus/consoles \
-                --web.external-url=/prometheus/
+                --web.external-url=/prometheus/ \
+                --web.enable-remote-write-receiver
 
               # Start Grafana with subpath
               docker run -d --name grafana --restart always --network monitoring \
@@ -109,6 +118,7 @@ resource "aws_instance" "bastion" {
 
               # Start Jaeger all-in-one with subpath
               docker run -d --name jaeger --restart always --network monitoring \
+                -p 4317:4317 -p 4318:4318 -p 14250:14250 -p 14268:14268 -p 9411:9411 \
                 -e "QUERY_BASE_PATH=/jaeger" \
                 jaegertracing/all-in-one:latest
 

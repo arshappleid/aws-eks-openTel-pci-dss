@@ -1,2 +1,23 @@
-# Prod environment override values
+# Production backend environment override values
 replicaCount: 2
+
+appName: financeguard-backend
+containerName: fastapi-backend
+
+image:
+  repository: financeguard-backend
+  tag: latest
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+env:
+  - name: ENVIRONMENT
+    value: "prod"
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: "http://otel-collector.financeguard.local:4317"

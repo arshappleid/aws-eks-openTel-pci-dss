@@ -1,50 +1,50 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: financeguard-frontend
-  labels:
-    app: financeguard-frontend
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: financeguard-frontend
-  template:
-    metadata:
-      labels:
+    name: financeguard-frontend
+    labels:
         app: financeguard-frontend
-    spec:
-      containers:
-        - name: react-frontend
-          image: financeguard-frontend:latest
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 80
-          
-          # Environment variables for the frontend
-          env:
-            - name: API_URL
-              value: "http://financeguard-backend-service"
-              
-          # Resource constraints
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
-              memory: "256Mi"
-              cpu: "250m"
+spec:
+    replicas: 2
+    selector:
+        matchLabels:
+            app: financeguard-frontend
+    template:
+        metadata:
+            labels:
+                app: financeguard-frontend
+        spec:
+            containers:
+                - name: react-frontend
+                  image: financeguard-frontend:latest
+                  imagePullPolicy: IfNotPresent
+                  ports:
+                      - containerPort: 80
+
+                  # Environment variables for the frontend
+                  env:
+                      - name: API_URL
+                        value: "http://inspection-alb-564595949.us-east-1.elb.amazonaws.com/stage/api/"
+
+                  # Resource constraints
+                  resources:
+                      requests:
+                          memory: "128Mi"
+                          cpu: "100m"
+                      limits:
+                          memory: "256Mi"
+                          cpu: "250m"
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: financeguard-frontend-service
+    name: financeguard-frontend-service
 spec:
-  selector:
-    app: financeguard-frontend
-  ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 80
-  type: ClusterIP
+    selector:
+        app: financeguard-frontend
+    ports:
+        - protocol: TCP
+          port: 80
+          targetPort: 80
+    type: ClusterIP

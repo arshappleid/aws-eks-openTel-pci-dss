@@ -42,6 +42,7 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
   # Disable default association and propagation to enforce manual configuration (PCI-DSS compliance)
   transit_gateway_default_route_table_association = false
   transit_gateway_default_route_table_propagation = false
+  appliance_mode_support                          = "enable"
 
   tags = merge(var.tags, {
     Name = "${var.vpc_name}-tgw-attachment"
@@ -77,7 +78,8 @@ locals {
   # Generate list of combinations for VPC route tables and TGW destination CIDRs
   vpc_route_tables = var.transit_gateway_id != null && var.transit_gateway_id != "" ? concat(
     module.vpc.private_route_table_ids,
-    module.vpc.public_route_table_ids
+    module.vpc.public_route_table_ids,
+    module.vpc.intra_route_table_ids
   ) : []
 
   tgw_routes = flatten([

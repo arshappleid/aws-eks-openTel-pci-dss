@@ -31,7 +31,7 @@ module "frontend_network" {
   transit_gateway_id                         = data.aws_ec2_transit_gateway.this.id
   transit_gateway_route_table_association_id = data.aws_ec2_transit_gateway_route_table.spokes.id
   transit_gateway_route_table_propagation_id = data.aws_ec2_transit_gateway_route_table.inspection.id
-  tgw_destinations                           = ["0.0.0.0/0"]
+  tgw_destinations                           = ["0.0.0.0/0", "192.178.0.0/16"]
 
   tags = merge(local.tags, { Tier = "frontend" })
 }
@@ -55,7 +55,7 @@ module "backend_network" {
   transit_gateway_id                         = data.aws_ec2_transit_gateway.this.id
   transit_gateway_route_table_association_id = data.aws_ec2_transit_gateway_route_table.spokes.id
   transit_gateway_route_table_propagation_id = data.aws_ec2_transit_gateway_route_table.inspection.id
-  tgw_destinations                           = ["0.0.0.0/0"]
+  tgw_destinations                           = ["0.0.0.0/0", "192.178.0.0/16"]
 
   tags = merge(local.tags, { Tier = "backend" })
 }

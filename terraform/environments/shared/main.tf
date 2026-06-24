@@ -112,6 +112,13 @@ resource "aws_ec2_transit_gateway_route" "to_inspection" {
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.spokes.id
 }
 
+# Explicit route to direct Inspection VPC CIDR traffic to the inspection VPC attachment
+resource "aws_ec2_transit_gateway_route" "to_inspection_explicit" {
+  destination_cidr_block         = var.vpc_cidr
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.inspection.id
+  transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.spokes.id
+}
+
 # Return routes from the DMZ VPC back to the Spoke VPCs via the Transit Gateway
 resource "aws_route" "inspection_public_to_spokes" {
   count = length(module.inspection_vpc.public_route_table_ids)
@@ -128,3 +135,20 @@ resource "aws_route" "inspection_private_to_spokes" {
   destination_cidr_block = "10.0.0.0/8"
   transit_gateway_id     = aws_ec2_transit_gateway.this.id
 }
+
+# Add route to 10.0.0.0/8 spokes in the default (main) route table of the Inspection VPC
+resource "aws_route" "inspection_default_to_spokes" {
+  route_table_id         = module.inspection_vpc.default_route_table_id
+  destination_cidr_block = "10.0.0.0/8"
+  transit_gateway_id     = aws_ec2_transit_gateway.this.id
+}
+
+# Add route to 10.0.0.0/8 spokes in the intra route tables of the Inspection VPC
+resource "aws_route" "inspection_intra_to_spokes" {
+  count = length(module.inspection_vpc.intra_route_table_ids)
+
+  route_table_id         = module.inspection_vpc.intra_route_table_ids[count.index]
+  destination_cidr_block = "10.0.0.0/8"
+  transit_gateway_id     = aws_ec2_transit_gateway.this.id
+}
+

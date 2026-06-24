@@ -1,2 +1,26 @@
-# Staging environment override values
+# Staging frontend environment override values
 replicaCount: 2
+
+appName: financeguard-frontend
+containerName: react-frontend
+
+image:
+  repository: financeguard-frontend
+  tag: latest
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+env:
+  - name: API_URL
+    value: "http://inspection-alb-564595949.us-east-1.elb.amazonaws.com/stage/api/"
+
+service:
+  port: 80
+  targetPort: 80
+
