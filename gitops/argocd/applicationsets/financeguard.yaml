@@ -15,7 +15,9 @@ spec:
                   - list:
                         elements:
                             - tier: frontend
+                              namespace: react
                             - tier: backend
+                              namespace: fastapi
     template:
         metadata:
             name: "financeguard-{{env}}-{{tier}}"
@@ -34,7 +36,7 @@ spec:
             destination:
                 
                 name: "financeguard-{{env}}-{{tier}}"
-                namespace: financeguard
+                namespace: "{{namespace}}"
             syncPolicy:
                 automated:
                     prune: true

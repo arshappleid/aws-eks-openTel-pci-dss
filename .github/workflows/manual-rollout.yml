@@ -1,0 +1,68 @@
+name: Manual Deployment Rollout
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target Environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - stage
+          - prod
+      service:
+        description: 'Service to roll out'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - frontend
+          - backend
+
+env:
+  AWS_REGION: us-east-1
+  GITHUB_ACTION_IAM_ROLE: arn:aws:iam::866934333672:role/GITHUB-ACTIONS-ALL-REPO
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  rollout:
+    name: Restart Workloads
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.GITHUB_ACTION_IAM_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Rollout Frontend Service
+        if: ${{ github.event.inputs.service == 'both' || github.event.inputs.service == 'frontend' }}
+        run: |
+          echo "Updating kubeconfig for Frontend cluster..."
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name financeguard-${{ github.event.inputs.environment }}-frontend
+          
+          echo "Restarting frontend deployment in 'react' namespace..."
+          kubectl rollout restart deployment/financeguard-frontend -n react
+          
+          echo "Waiting for rollout to complete..."
+          kubectl rollout status deployment/financeguard-frontend -n react --timeout=600s
+
+      - name: Rollout Backend Service
+        if: ${{ github.event.inputs.service == 'both' || github.event.inputs.service == 'backend' }}
+        run: |
+          echo "Updating kubeconfig for Backend cluster..."
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name financeguard-${{ github.event.inputs.environment }}-backend
+          
+          echo "Restarting backend deployment in 'fastapi' namespace..."
+          kubectl rollout restart deployment/financeguard-backend -n fastapi
+          
+          echo "Waiting for rollout to complete..."
+          kubectl rollout status deployment/financeguard-backend -n fastapi --timeout=600s

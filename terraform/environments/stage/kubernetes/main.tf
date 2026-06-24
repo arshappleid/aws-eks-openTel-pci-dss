@@ -11,6 +11,19 @@ data "aws_lb_target_group" "backend" {
   name = "tg-backend-${local.environment}"
 }
 
+resource "kubernetes_namespace" "react" {
+  provider = kubernetes.frontend
+  metadata {
+    name = "react"
+  }
+}
+
+resource "kubernetes_namespace" "fastapi" {
+  provider = kubernetes.backend
+  metadata {
+    name = "fastapi"
+  }
+}
 
 resource "kubernetes_manifest" "frontend_target_binding" {
   provider = kubernetes.frontend
@@ -20,7 +33,7 @@ resource "kubernetes_manifest" "frontend_target_binding" {
     kind       = "TargetGroupBinding"
     metadata = {
       name      = "frontend-tg-binding"
-      namespace = "default"
+      namespace = "react"
     }
     spec = {
       targetGroupARN = data.aws_lb_target_group.frontend.arn
@@ -31,6 +44,8 @@ resource "kubernetes_manifest" "frontend_target_binding" {
       }
     }
   }
+
+  depends_on = [kubernetes_namespace.react]
 }
 
 
@@ -42,7 +57,7 @@ resource "kubernetes_manifest" "backend_target_binding" {
     kind       = "TargetGroupBinding"
     metadata = {
       name      = "backend-tg-binding"
-      namespace = "default"
+      namespace = "fastapi"
     }
     spec = {
       targetGroupARN = data.aws_lb_target_group.backend.arn
@@ -53,6 +68,8 @@ resource "kubernetes_manifest" "backend_target_binding" {
       }
     }
   }
+
+  depends_on = [kubernetes_namespace.fastapi]
 }
 
 

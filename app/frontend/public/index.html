@@ -1,18 +1,406 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>React App</title>
-    <!--
-      env-config.js is generated at container startup by docker-entrypoint.sh.
-      It exposes window._env_ so the app can read runtime environment variables
-      (e.g. API_URL) without requiring a rebuild.
-    -->
-    <script src="%PUBLIC_URL%/env-config.js"></script>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FinanceGuard API Client</title>
+  <!-- Modern Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- Injected at runtime by docker-entrypoint.sh -->
+  <script src="/env-config.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #0d0e15;
+      --panel-bg: rgba(22, 24, 37, 0.7);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.15);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.15);
+      --error: #ef4444;
+      --error-glow: rgba(239, 68, 68, 0.15);
+      --warning: #f59e0b;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Glassmorphic Panel */
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 2rem;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    header h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      background: linear-gradient(135deg, #a5b4fc 0%, #6366f1 50%, #4338ca 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      font-weight: 400;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.375rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border: 1px solid transparent;
+      margin-top: 0.5rem;
+    }
+
+    .status-badge.idle {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+    }
+
+    .status-badge.loading {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+    }
+
+    .status-badge.success {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .status-badge.error {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.2);
+      color: var(--error);
+    }
+
+    .status-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: currentColor;
+    }
+
+    .status-badge.loading .dot {
+      animation: pulse 1.5s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+
+    .endpoint-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .endpoint-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .endpoint-value {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      word-break: break-all;
+      color: #a5b4fc;
+    }
+
+    .action-btn {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 1rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px var(--primary-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .action-btn:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px var(--primary-glow);
+    }
+
+    .action-btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .action-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .result-section {
+      display: none;
+    }
+
+    .result-section.visible {
+      display: block;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .result-title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .pre-container {
+      background: #06070d;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      overflow-x: auto;
+      max-height: 400px;
+    }
+
+    pre {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: #e5e7eb;
+    }
+
+    .error-card {
+      background: rgba(239, 68, 68, 0.05);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 12px;
+      padding: 1.25rem;
+      color: #fca5a5;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .error-card.visible {
+      display: block;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .error-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="panel">
+      <header>
+        <h1>FinanceGuard API Portal</h1>
+        <p>Static HTML Client for EKS Backend Testing</p>
+        
+        <div id="statusBadge" class="status-badge idle">
+          <span class="dot"></span>
+          <span id="statusText">Idle</span>
+        </div>
+      </header>
+
+      <div class="endpoint-card">
+        <div class="endpoint-label">Configured API Endpoint</div>
+        <div id="apiEndpoint" class="endpoint-value">(detecting...)</div>
+      </div>
+    </div>
+
+    <button id="queryBtn" class="action-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+      </svg>
+      Query Backend API
+    </button>
+
+    <div id="errorCard" class="error-card">
+      <div class="error-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        API Connection Error
+      </div>
+      <p id="errorMsg"></p>
+    </div>
+
+    <div id="resultPanel" class="panel result-section">
+      <div class="result-header">
+        <div class="result-title">Response JSON</div>
+        <div id="latencyVal" style="font-size: 0.8rem; color: var(--text-muted);"></div>
+      </div>
+      <div class="pre-container">
+        <pre><code id="jsonOutput"></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>FinanceGuard Platform — PCI-DSS Compliant Deployment</p>
+  </footer>
+
+  <script>
+    // Retrieve runtime environment variable injected by docker-entrypoint.sh
+    const API_URL = (window._env_ && window._env_.API_URL) || '';
+    
+    const apiEndpointEl = document.getElementById('apiEndpoint');
+    const queryBtn = document.getElementById('queryBtn');
+    const statusBadge = document.getElementById('statusBadge');
+    const statusText = document.getElementById('statusText');
+    const errorCard = document.getElementById('errorCard');
+    const errorMsg = document.getElementById('errorMsg');
+    const resultPanel = document.getElementById('resultPanel');
+    const jsonOutput = document.getElementById('jsonOutput');
+    const latencyVal = document.getElementById('latencyVal');
+
+    // Display configured endpoint
+    apiEndpointEl.textContent = API_URL || 'Not configured (Make sure API_URL environment variable is set)';
+
+    function setBadgeStatus(status) {
+      statusBadge.className = 'status-badge ' + status;
+      statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    }
+
+    async function queryAPI() {
+      if (!API_URL) {
+        errorCard.className = 'error-card visible';
+        errorMsg.textContent = 'API_URL is missing or empty. Please inject the API_URL environment variable.';
+        setBadgeStatus('error');
+        return;
+      }
+
+      // Reset UI state
+      setBadgeStatus('loading');
+      errorCard.className = 'error-card';
+      resultPanel.className = 'panel result-section';
+      queryBtn.disabled = true;
+      
+      const startTime = performance.now();
+
+      try {
+        const response = await fetch(API_URL);
+        const duration = Math.round(performance.now() - startTime);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        // Show success
+        setBadgeStatus('success');
+        resultPanel.className = 'panel result-section visible';
+        jsonOutput.textContent = JSON.stringify(data, null, 2);
+        latencyVal.textContent = `Latency: ${duration}ms`;
+
+      } catch (error) {
+        // Show error
+        setBadgeStatus('error');
+        errorCard.className = 'error-card visible';
+        errorMsg.textContent = `${error.message}. Double-check that the EKS backend service is running and accessible at this URL, and CORS settings are configured correctly.`;
+        console.error('API query error:', error);
+      } finally {
+        queryBtn.disabled = false;
+      }
+    }
+
+    queryBtn.addEventListener('click', queryAPI);
+
+    // Initial query on load if endpoint is set
+    if (API_URL) {
+      queryAPI();
+    }
+  </script>
+</body>
 </html>

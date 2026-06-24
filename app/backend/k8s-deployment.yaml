@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: financeguard-backend
-    namespace: financeguard
+    namespace: fastapi
     labels:
         app: financeguard-backend
 spec:
@@ -91,7 +91,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
     name: financeguard-backend-otel-config
-    namespace: financeguard
+    namespace: fastapi
 data:
     otel-collector-config.yaml: |
         receivers:
@@ -161,7 +161,7 @@ apiVersion: v1
 kind: Service
 metadata:
     name: financeguard-backend-service
-    namespace: financeguard
+    namespace: fastapi
 spec:
     selector:
         app: financeguard-backend
