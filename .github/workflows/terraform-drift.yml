@@ -16,7 +16,7 @@ jobs:
         strategy:
             matrix:
                 environment: [dev, stage, prod]
-                layer: [network, compute]
+                layer: [network, compute, kubernetes]
         defaults:
             run:
                 working-directory: terraform/environments/${{ matrix.environment }}/${{ matrix.layer }}

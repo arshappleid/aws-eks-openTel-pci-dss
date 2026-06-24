@@ -20,7 +20,7 @@ jobs:
         strategy:
             matrix:
                 environment: ["${{ github.ref_name }}"]
-                layer: [network, compute]
+                layer: [network, compute, kubernetes]
             max-parallel: 1
         defaults:
             run:

@@ -21,7 +21,7 @@ jobs:
     strategy:
       matrix:
         environment: ["${{ github.base_ref || github.ref_name }}"]
-        layer: [network, compute]
+        layer: [network, compute, kubernetes]
     defaults:
       run:
         working-directory: terraform/environments/${{ matrix.environment }}/${{ matrix.layer }}
