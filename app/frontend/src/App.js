@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-/**
- * API_URL is injected at container runtime via docker-entrypoint.sh,
- * which writes /env-config.js exposing window._env_.
- * Falls back to REACT_APP_API_URL for local dev (set in .env.local).
- */
+
 const API_URL = (window._env_ && window._env_.API_URL) || process.env.REACT_APP_API_URL || '';
 
 function App() {

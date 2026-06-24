@@ -52,4 +52,3 @@ output "bastion_instance_id" {
   description = "The instance ID of the Bastion server"
   value       = aws_instance.bastion.id
 }
-

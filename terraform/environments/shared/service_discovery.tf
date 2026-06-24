@@ -1,11 +1,11 @@
-# Private DNS Namespace for Service Discovery (Cloud Map)
+
 resource "aws_service_discovery_private_dns_namespace" "internal" {
   name        = "financeguard.local"
   description = "Private DNS namespace for FinanceGuard internal services"
   vpc         = module.inspection_vpc.vpc_id
 }
 
-# Service Definition for OTel Collector
+
 resource "aws_service_discovery_service" "otel_collector" {
   name = "otel-collector"
 
@@ -19,7 +19,7 @@ resource "aws_service_discovery_service" "otel_collector" {
   }
 }
 
-# Register the Bastion's Private IP as the target instance
+
 resource "aws_service_discovery_instance" "bastion_otel" {
   instance_id = aws_instance.bastion.id
   service_id  = aws_service_discovery_service.otel_collector.id

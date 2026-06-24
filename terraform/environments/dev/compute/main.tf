@@ -1,4 +1,4 @@
-# Dev Environment Configuration
+
 locals {
   environment           = "dev"
   app_name              = "financeguard"
@@ -47,7 +47,7 @@ data "aws_subnets" "backend_private" {
 }
 
 
-# Frontend EKS Cluster Module
+
 module "frontend_eks" {
   providers = {
     helm       = helm.frontend
@@ -61,7 +61,7 @@ module "frontend_eks" {
   vpc_id          = data.aws_vpc.frontend.id
   subnet_ids      = data.aws_subnets.frontend_private.ids
 
-  # Highly Available Node Groups for Frontend
+
   eks_managed_node_groups = {
     frontend_nodes = {
       min_size     = 2
@@ -69,7 +69,7 @@ module "frontend_eks" {
       desired_size = 2
 
       instance_types = ["t3.medium"]
-      capacity_type  = "SPOT" # Cost savings for dev environment
+      capacity_type  = "SPOT"
 
       labels = {
         Environment = local.environment
@@ -81,7 +81,7 @@ module "frontend_eks" {
   tags = merge(local.tags, { Tier = "frontend" })
 }
 
-# Dev Backend EKS Cluster Module
+
 module "backend_eks" {
   providers = {
     helm       = helm.backend
@@ -95,7 +95,7 @@ module "backend_eks" {
   vpc_id          = data.aws_vpc.backend.id
   subnet_ids      = data.aws_subnets.backend_private.ids
 
-  # Highly Available Node Groups for Backend
+
   eks_managed_node_groups = {
     backend_nodes = {
       min_size     = 2
@@ -103,7 +103,7 @@ module "backend_eks" {
       desired_size = 2
 
       instance_types = ["t3.medium"]
-      capacity_type  = "SPOT" # Cost savings for dev environment
+      capacity_type  = "SPOT"
 
       labels = {
         Environment = local.environment
@@ -114,6 +114,5 @@ module "backend_eks" {
 
   tags = merge(local.tags, { Tier = "backend" })
 }
-
 
 

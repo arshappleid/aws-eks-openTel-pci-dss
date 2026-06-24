@@ -1,6 +1,6 @@
-# ==============================================================================
-# INSPECTION VPC & TRANSIT GATEWAY OUTPUTS (from Shared Module)
-# ==============================================================================
+
+
+
 output "inspection_vpc_id" {
   description = "The ID of the Inspection VPC"
   value       = module.shared.inspection_vpc_id
@@ -41,9 +41,9 @@ output "transit_gateway_inspection_route_table_id" {
   value       = module.shared.transit_gateway_inspection_route_table_id
 }
 
-# ==============================================================================
-# PROD ENVIRONMENT OUTPUTS
-# ==============================================================================
+
+
+
 output "prod_frontend_vpc_id" {
   description = "The ID of the Prod Frontend VPC"
   value       = module.prod.frontend_vpc_id
@@ -74,9 +74,9 @@ output "prod_backend_cluster_endpoint" {
   value       = module.prod.backend_cluster_endpoint
 }
 
-# ==============================================================================
-# STAGE ENVIRONMENT OUTPUTS
-# ==============================================================================
+
+
+
 output "stage_frontend_vpc_id" {
   description = "The ID of the Stage Frontend VPC"
   value       = module.stage.frontend_vpc_id
@@ -107,9 +107,9 @@ output "stage_backend_cluster_endpoint" {
   value       = module.stage.backend_cluster_endpoint
 }
 
-# ==============================================================================
-# DEV ENVIRONMENT OUTPUTS
-# ==============================================================================
+
+
+
 output "dev_frontend_vpc_id" {
   description = "The ID of the Dev Frontend VPC"
   value       = module.dev.frontend_vpc_id

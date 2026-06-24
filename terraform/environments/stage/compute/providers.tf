@@ -1,5 +1,5 @@
-# Provider configurations
-# Version constraints are managed centrally in versions.tf (symlinked)
+
+
 
 provider "aws" {
   region = var.aws_region
@@ -11,7 +11,7 @@ provider "aws" {
   }
 }
 
-# Default providers (un-aliased) required by Terraform for module initialization
+
 provider "kubernetes" {
   host                   = module.frontend_eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.frontend_eks.cluster_certificate_authority_data)
@@ -34,7 +34,7 @@ provider "helm" {
   }
 }
 
-# Frontend aliased providers
+
 provider "kubernetes" {
   alias                  = "frontend"
   host                   = module.frontend_eks.cluster_endpoint
@@ -59,7 +59,7 @@ provider "helm" {
   }
 }
 
-# Backend aliased providers
+
 provider "kubernetes" {
   alias                  = "backend"
   host                   = module.backend_eks.cluster_endpoint

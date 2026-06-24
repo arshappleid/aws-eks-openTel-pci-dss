@@ -2,7 +2,7 @@ locals {
   environment = "dev"
 }
 
-# Look up Target Groups from the Shared ALB
+
 data "aws_lb_target_group" "frontend" {
   name = "tg-frontend-${local.environment}"
 }
@@ -11,7 +11,7 @@ data "aws_lb_target_group" "backend" {
   name = "tg-backend-${local.environment}"
 }
 
-# Bind EKS Frontend Service to ALB Target Group
+
 resource "kubernetes_manifest" "frontend_target_binding" {
   provider = kubernetes.frontend
 
@@ -33,7 +33,7 @@ resource "kubernetes_manifest" "frontend_target_binding" {
   }
 }
 
-# Bind EKS Backend Service to ALB Target Group
+
 resource "kubernetes_manifest" "backend_target_binding" {
   provider = kubernetes.backend
 
@@ -55,7 +55,7 @@ resource "kubernetes_manifest" "backend_target_binding" {
   }
 }
 
-# ArgoCD for Frontend
+
 resource "helm_release" "frontend_argocd" {
   provider         = helm.frontend
   name             = "argocd"
@@ -136,7 +136,7 @@ resource "helm_release" "frontend_argocd" {
   }
 }
 
-# AWS Load Balancer Controller for Frontend
+
 resource "helm_release" "frontend_aws_lbc" {
   provider   = helm.frontend
   name       = "aws-load-balancer-controller"
@@ -166,7 +166,7 @@ resource "helm_release" "frontend_aws_lbc" {
   }
 }
 
-# ArgoCD for Backend
+
 resource "helm_release" "backend_argocd" {
   provider         = helm.backend
   name             = "argocd"
@@ -247,7 +247,7 @@ resource "helm_release" "backend_argocd" {
   }
 }
 
-# AWS Load Balancer Controller for Backend
+
 resource "helm_release" "backend_aws_lbc" {
   provider   = helm.backend
   name       = "aws-load-balancer-controller"
@@ -277,7 +277,7 @@ resource "helm_release" "backend_aws_lbc" {
   }
 }
 
-# OpenTelemetry Collector for Frontend EKS (Dev)
+
 resource "helm_release" "frontend_otel_collector" {
   provider         = helm.frontend
   name             = "otel-collector"
@@ -334,7 +334,7 @@ resource "helm_release" "frontend_otel_collector" {
   ]
 }
 
-# OpenTelemetry Collector for Backend EKS (Dev)
+
 resource "helm_release" "backend_otel_collector" {
   provider         = helm.backend
   name             = "otel-collector"
@@ -391,7 +391,7 @@ resource "helm_release" "backend_otel_collector" {
   ]
 }
 
-# Fluent Bit for Frontend EKS
+
 resource "helm_release" "frontend_fluent_bit" {
   provider   = helm.frontend
   name       = "fluent-bit"
@@ -414,148 +414,4 @@ resource "helm_release" "frontend_fluent_bit" {
         [INPUT]
             Name              tail
             Tag               kube.*
-            Path              /var/log/containers/*.log
-            Parser            docker
-            DB                /var/log/flb_kube.db
-            Mem_Buf_Limit     50MB
-            Skip_Long_Lines   On
-
-      filters: |
-        [FILTER]
-            Name                kubernetes
-            Match               kube.*
-            Kube_URL            https://kubernetes.default.svc:443
-            Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-            Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
-            Kube_Tag_Prefix     kube.var.log.containers.
-            Merge_Log           On
-            Keep_Log            Off
-            K8S-Logging.Parser  On
-            K8S-Logging.Exclude On
-
-      outputs: |
-        [OUTPUT]
-            Name            opensearch
-            Match           *
-            Host            otel-collector.financeguard.local
-            Port            80
-            Path            /opensearch
-            Index           financeguard-dev-frontend-logs
-            Type            _doc
-            TLS             Off
-            Suppress_Type   On
-
-        [OUTPUT]
-            Name            syslog
-            Match           *
-            Host            otel-collector.financeguard.local
-            Port            514
-            Mode            udp
-            Syslog_Format   rfc5424
-            Syslog_Severity_Key  level
-            Syslog_Facility_Key  facility
-    EOT
-  ]
-}
-
-# Fluent Bit for Backend EKS
-resource "helm_release" "backend_fluent_bit" {
-  provider   = helm.backend
-  name       = "fluent-bit"
-  repository = "https://fluent.github.io/helm-charts"
-  chart      = "fluent-bit"
-  namespace  = "kube-system"
-  version    = "0.47.0"
-
-  values = [
-    <<-EOT
-    config:
-      service: |
-        [SERVICE]
-            Flush         1
-            Log_Level     info
-            Daemon        off
-            Parsers_File  parsers.conf
-
-      inputs: |
-        [INPUT]
-            Name              tail
-            Tag               kube.*
-            Path              /var/log/containers/*.log
-            Parser            docker
-            DB                /var/log/flb_kube.db
-            Mem_Buf_Limit     50MB
-            Skip_Long_Lines   On
-
-      filters: |
-        [FILTER]
-            Name                kubernetes
-            Match               kube.*
-            Kube_URL            https://kubernetes.default.svc:443
-            Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-            Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
-            Kube_Tag_Prefix     kube.var.log.containers.
-            Merge_Log           On
-            Keep_Log            Off
-            K8S-Logging.Parser  On
-            K8S-Logging.Exclude On
-
-      outputs: |
-        [OUTPUT]
-            Name            opensearch
-            Match           *
-            Host            otel-collector.financeguard.local
-            Port            80
-            Path            /opensearch
-            Index           financeguard-dev-backend-logs
-            Type            _doc
-            TLS             Off
-            Suppress_Type   On
-
-        [OUTPUT]
-            Name            syslog
-            Match           *
-            Host            otel-collector.financeguard.local
-            Port            514
-            Mode            udp
-            Syslog_Format   rfc5424
-            Syslog_Severity_Key  level
-            Syslog_Facility_Key  facility
-    EOT
-  ]
-}
-
-# EKS Access Entries moved from Compute Layer to Kubernetes Layer
-resource "aws_eks_access_entry" "github_actions_frontend" {
-  cluster_name  = data.aws_eks_cluster.frontend.name
-  principal_arn = var.github_actions_role_arn
-  type          = "STANDARD"
-}
-
-resource "aws_eks_access_policy_association" "github_actions_frontend" {
-  cluster_name  = data.aws_eks_cluster.frontend.name
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-  principal_arn = var.github_actions_role_arn
-
-  access_scope {
-    type = "cluster"
-  }
-}
-
-resource "aws_eks_access_entry" "github_actions_backend" {
-  cluster_name  = data.aws_eks_cluster.backend.name
-  principal_arn = var.github_actions_role_arn
-  type          = "STANDARD"
-}
-
-resource "aws_eks_access_policy_association" "github_actions_backend" {
-  cluster_name  = data.aws_eks_cluster.backend.name
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-  principal_arn = var.github_actions_role_arn
-
-  access_scope {
-    type = "cluster"
-  }
-}
-
-
+            Path              /var/log/containers

@@ -1,32 +1,32 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# create_ecr.sh — Create an Amazon ECR repository with security best practices
-#
-# Usage:
-#   ./scripts/create_ecr.sh <repo-name> [--region <region>] [--env <dev|stage|prod>]
-#
-# Examples:
-#   ./scripts/create_ecr.sh financeguard
-#   ./scripts/create_ecr.sh financeguard --region us-west-2
-#   ./scripts/create_ecr.sh financeguard --env prod
-#   ./scripts/create_ecr.sh financeguard --region us-east-1 --env stage
-# ==============================================================================
+
+
+
+
+
+
+
+
+
+
+
+
 
 set -euo pipefail
 
-# ── Defaults ──────────────────────────────────────────────────────────────────
+
 DEFAULT_REGION="us-east-1"
 DEFAULT_ENV="dev"
 PROJECT="aws-eks-openTel-pci-dss"
 
-# ── Colors ────────────────────────────────────────────────────────────────────
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# ── Helper functions ──────────────────────────────────────────────────────────
+
 info()    { echo -e "${CYAN}[INFO]${NC}  $*"; }
 success() { echo -e "${GREEN}[OK]${NC}    $*"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
@@ -63,7 +63,7 @@ EOF
   exit 0
 }
 
-# ── Parse arguments ───────────────────────────────────────────────────────────
+
 REPO_NAME=""
 REGION="${DEFAULT_REGION}"
 ENVIRONMENT="${DEFAULT_ENV}"
@@ -72,7 +72,7 @@ TAG_IMMUTABILITY="IMMUTABLE"
 SCAN_ON_PUSH=true
 DRY_RUN=false
 
-while [[ $# -gt 0 ]]; do
+while [[ $
   case "$1" in
     -h|--help)
       usage
@@ -111,7 +111,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# ── Validate inputs ──────────────────────────────────────────────────────────
+
 if [[ -z "${REPO_NAME}" ]]; then
   error "Repository name is required."
   echo ""
@@ -123,13 +123,13 @@ if [[ ! "${ENVIRONMENT}" =~ ^(dev|stage|prod)$ ]]; then
   exit 1
 fi
 
-# Check AWS CLI is available
+
 if ! command -v aws &>/dev/null; then
   error "AWS CLI is not installed. See: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
   exit 1
 fi
 
-# ── Build encryption config ──────────────────────────────────────────────────
+
 if [[ -n "${KMS_KEY}" ]]; then
   ENCRYPTION_CONFIG="encryptionType=KMS,kmsKey=${KMS_KEY}"
   ENCRYPTION_DISPLAY="KMS (${KMS_KEY})"
@@ -138,10 +138,10 @@ else
   ENCRYPTION_DISPLAY="AES-256"
 fi
 
-# ── Build tags ────────────────────────────────────────────────────────────────
+
 TAGS="Key=Project,Value=${PROJECT} Key=Environment,Value=${ENVIRONMENT} Key=ManagedBy,Value=Script Key=CreatedAt,Value=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-# ── Lifecycle policy (expire untagged images after 14 days) ───────────────────
+
 LIFECYCLE_POLICY='{
   "rules": [
     {
@@ -173,7 +173,7 @@ LIFECYCLE_POLICY='{
   ]
 }'
 
-# ── Print summary ─────────────────────────────────────────────────────────────
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 info "ECR Repository Configuration"
@@ -187,7 +187,7 @@ echo -e "  Encryption:     ${ENCRYPTION_DISPLAY}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# ── Execute or dry-run ────────────────────────────────────────────────────────
+
 run_cmd() {
   if [[ "${DRY_RUN}" == true ]]; then
     echo -e "${YELLOW}[DRY-RUN]${NC} $*"
@@ -196,7 +196,7 @@ run_cmd() {
   fi
 }
 
-# Step 1: Check if repository already exists
+
 info "Checking if repository '${REPO_NAME}' already exists..."
 if aws ecr describe-repositories \
     --repository-names "${REPO_NAME}" \
@@ -208,7 +208,7 @@ if aws ecr describe-repositories \
   success "Existing repository URI: ${REPO_URI}"
   echo ""
 
-  # Still apply lifecycle policy and tags to existing repo
+
   info "Updating lifecycle policy..."
   run_cmd "aws ecr put-lifecycle-policy \
     --repository-name '${REPO_NAME}' \
@@ -231,7 +231,7 @@ if aws ecr describe-repositories \
   exit 0
 fi
 
-# Step 2: Create the repository
+
 info "Creating ECR repository '${REPO_NAME}'..."
 run_cmd "aws ecr create-repository \
   --repository-name '${REPO_NAME}' \
@@ -248,7 +248,7 @@ else
   echo ""
 fi
 
-# Step 3: Apply lifecycle policy
+
 info "Applying lifecycle policy..."
 run_cmd "aws ecr put-lifecycle-policy \
   --repository-name '${REPO_NAME}' \
@@ -260,7 +260,7 @@ if [[ "${DRY_RUN}" == false ]]; then
   success "Lifecycle policy applied."
 fi
 
-# Step 4: Print final summary
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 if [[ "${DRY_RUN}" == false ]]; then

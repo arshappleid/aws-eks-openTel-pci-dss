@@ -45,13 +45,13 @@ jobs:
 
             - name: Copy Ansible Assets to Bastion
               run: |
-                  # Ensure target folder is clean and copy ansible files
+                  
                   ssh -o StrictHostKeyChecking=no -i private_key.pem ec2-user@${{ env.BASTION_IP }} "mkdir -p /home/ec2-user/ansible"
                   scp -r -o StrictHostKeyChecking=no -i private_key.pem ./ansible/* ec2-user@${{ env.BASTION_IP }}:/home/ec2-user/ansible/
 
             - name: Copy EKS Node Key Pair to Bastion
               run: |
-                  # Inject the prab-key-pair private key to allow Bastion to EKS node SSH authentication
+                  
                   scp -o StrictHostKeyChecking=no -i private_key.pem private_key.pem ec2-user@${{ env.BASTION_IP }}:/home/ec2-user/.ssh/prab-key-pair.pem
                   ssh -o StrictHostKeyChecking=no -i private_key.pem ec2-user@${{ env.BASTION_IP }} "chmod 400 /home/ec2-user/.ssh/prab-key-pair.pem"
 

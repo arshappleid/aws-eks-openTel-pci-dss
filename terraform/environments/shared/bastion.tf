@@ -58,8 +58,8 @@ resource "aws_instance" "bastion" {
     market_type = "spot"
   }
 
-  
-  # Deploy to the first public subnet of the shared inspection VPC
+
+
   subnet_id     = module.inspection_vpc.public_subnets[0]
 
   vpc_security_group_ids = [aws_security_group.bastion.id]
@@ -87,7 +87,7 @@ resource "aws_eip" "bastion" {
   })
 }
 
-# IAM Role for Bastion Host
+
 resource "aws_iam_role" "bastion" {
   name = "bastion-server-role"
 
@@ -109,7 +109,7 @@ resource "aws_iam_role" "bastion" {
   })
 }
 
-# IAM Policy for S3 Logs Bucket Access
+
 resource "aws_iam_policy" "bastion_s3" {
   name        = "bastion-s3-logs-read-policy"
   description = "Allows Bastion host to read logs from prab-infrastrcuture-logs bucket"
@@ -136,19 +136,19 @@ resource "aws_iam_policy" "bastion_s3" {
   })
 }
 
-# Attach S3 Read Policy to Bastion Role
+
 resource "aws_iam_role_policy_attachment" "bastion_s3" {
   role       = aws_iam_role.bastion.name
   policy_arn = aws_iam_policy.bastion_s3.arn
 }
 
-# Attach AWS SSM Managed Policy to Bastion Role (required for SSM session connection)
+
 resource "aws_iam_role_policy_attachment" "bastion_ssm" {
   role       = aws_iam_role.bastion.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-# IAM Instance Profile for Bastion Host
+
 resource "aws_iam_instance_profile" "bastion" {
   name = "bastion-server-instance-profile"
   role = aws_iam_role.bastion.name

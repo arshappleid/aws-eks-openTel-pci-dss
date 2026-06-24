@@ -38,7 +38,7 @@ module "dev_eks" {
       desired_size = 2
 
       instance_types = ["t2.micro"]
-      capacity_type  = "SPOT" # Cost savings for Dev
+      capacity_type  = "SPOT"
 
       labels = {
         Environment = "dev"
@@ -105,7 +105,7 @@ module "prod_network" {
   private_subnets = ["10.30.1.0/24", "10.30.2.0/24"]
   intra_subnets     = ["10.30.3.0/24"]
 
-  # High availability NAT configuration for Production
+
   single_nat_gateway = false
   cluster_name       = "prod-eks-cluster"
 
@@ -131,7 +131,7 @@ module "prod_eks" {
       instance_types = ["t3.micro"]
       capacity_type  = "SPOT"
 
-      # Encrypt root volume for security compliance (PCI-DSS)
+
       block_device_mappings = {
         xvda = {
           device_name = "/dev/xvda"

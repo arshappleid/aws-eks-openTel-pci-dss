@@ -30,7 +30,7 @@ module "dev_eks" {
       desired_size = 2
 
       instance_types = ["t2.micro"]
-      capacity_type  = "SPOT" # Cost savings for Dev
+      capacity_type  = "SPOT"
 
       labels = {
         Environment = "dev"

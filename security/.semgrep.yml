@@ -1,4 +1,4 @@
-# Semgrep configuration file
+
 rules:
   - id: placeholder-rule
     pattern: TODO

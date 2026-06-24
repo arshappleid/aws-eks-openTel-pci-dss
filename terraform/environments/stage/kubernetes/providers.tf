@@ -7,7 +7,7 @@ provider "aws" {
   }
 }
 
-# Fetch EKS cluster endpoints dynamically using data sources
+
 data "aws_eks_cluster" "frontend" {
   name = "financeguard-stage-frontend"
 }
@@ -24,7 +24,7 @@ data "aws_eks_cluster_auth" "backend" {
   name = "financeguard-stage-backend"
 }
 
-# Default un-aliased providers (using frontend cluster)
+
 provider "kubernetes" {
   host                   = data.aws_eks_cluster.frontend.endpoint
   cluster_ca_certificate = base64decode(data.aws_eks_cluster.frontend.certificate_authority[0].data)
@@ -39,7 +39,7 @@ provider "helm" {
   }
 }
 
-# Frontend aliased providers
+
 provider "kubernetes" {
   alias                  = "frontend"
   host                   = data.aws_eks_cluster.frontend.endpoint
@@ -56,7 +56,7 @@ provider "helm" {
   }
 }
 
-# Backend aliased providers
+
 provider "kubernetes" {
   alias                  = "backend"
   host                   = data.aws_eks_cluster.backend.endpoint

@@ -20,7 +20,7 @@ on:
             - "terraform/**"
             - "scripts/**"
     schedule:
-        - cron: "0 9 * * *" # Daily at 9:00 AM UTC
+        - cron: "0 9 * * *" 
 
 env:
     AWS_REGION: us-east-1
@@ -71,7 +71,7 @@ jobs:
                   framework: terraform
                   output_format: cli,json
                   output_file_path: console,checkov-report.json
-                  soft_fail: true # Logs PCI-DSS alerts as warnings without failing the runner
+                  soft_fail: true 
 
             - name: Set up JFrog CLI
               uses: jfrog/setup-jfrog-cli@v4
@@ -81,10 +81,10 @@ jobs:
 
             - name: Upload Compliance Reports to JFrog
               run: |
-                  # Upload active resource compliance audit report
+                  
                   jf rt upload "compliance-audit-report.txt" "${{ env.JFROG_REPORTS_REPO }}/active-scans/${{ github.run_id }}/compliance-audit-report.txt"
 
-                  # Upload Checkov static configuration scan report (if it exists)
+                  
                   if [ -f "checkov-report.json" ]; then
                     jf rt upload "checkov-report.json" "${{ env.JFROG_REPORTS_REPO }}/static-scans/${{ github.run_id }}/checkov-report.json"
                   fi

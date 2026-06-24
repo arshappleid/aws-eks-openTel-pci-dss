@@ -1,6 +1,4 @@
-{{/*
-Expand the name of the chart.
-*/}}
+
 {{- define "financeguard.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
@@ -18,16 +16,12 @@ Expand the name of the chart.
 {{- end }}
 {{- end }}
 
-{{/*
-Create chart name and version as used by the chart label.
-*/}}
+
 {{- define "financeguard.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
-{{/*
-Common labels
-*/}}
+
 {{- define "financeguard.labels" -}}
 helm.sh/chart: {{ include "financeguard.chart" . }}
 {{ include "financeguard.selectorLabels" . }}
@@ -37,9 +31,7 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
-{{/*
-Selector labels
-*/}}
+
 {{- define "financeguard.selectorLabels" -}}
 app: {{ include "financeguard.name" . }}
 app.kubernetes.io/name: {{ include "financeguard.name" . }}

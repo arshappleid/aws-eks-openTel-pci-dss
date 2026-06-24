@@ -1,5 +1,5 @@
-# Centralized Terraform and Provider Version Constraints
-# All environment configurations symlink to this file to ensure version consistency.
+
+
 terraform {
   required_version = ">= 1.15.0"
 

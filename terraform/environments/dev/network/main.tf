@@ -1,4 +1,4 @@
-# Dev Environment Configuration
+
 locals {
   environment           = "dev"
   app_name              = "financeguard"
@@ -11,7 +11,7 @@ locals {
   }
 }
 
-# Dynamic Lookups for Shared Transit Gateway and Route Tables
+
 data "aws_ec2_transit_gateway" "this" {
   filter {
     name   = "tag:Name"
@@ -33,7 +33,7 @@ data "aws_ec2_transit_gateway_route_table" "inspection" {
   }
 }
 
-# Dev Frontend Network Module (VPC)
+
 module "frontend_network" {
   source = "../../../modules/network"
   env    = local.environment
@@ -47,7 +47,7 @@ module "frontend_network" {
   single_nat_gateway = true
   cluster_name       = local.frontend_cluster_name
 
-  # TGW Connection & Routing Setup
+
   transit_gateway_id                         = data.aws_ec2_transit_gateway.this.id
   transit_gateway_route_table_association_id = data.aws_ec2_transit_gateway_route_table.spokes.id
   transit_gateway_route_table_propagation_id = data.aws_ec2_transit_gateway_route_table.inspection.id
@@ -56,7 +56,7 @@ module "frontend_network" {
   tags = merge(local.tags, { Tier = "frontend" })
 }
 
-# Dev Backend Network Module (VPC)
+
 module "backend_network" {
   source = "../../../modules/network"
   env    = local.environment
@@ -70,7 +70,7 @@ module "backend_network" {
   single_nat_gateway = true
   cluster_name       = local.backend_cluster_name
 
-  # TGW Connection & Routing Setup
+
   transit_gateway_id                         = data.aws_ec2_transit_gateway.this.id
   transit_gateway_route_table_association_id = data.aws_ec2_transit_gateway_route_table.spokes.id
   transit_gateway_route_table_propagation_id = data.aws_ec2_transit_gateway_route_table.inspection.id
@@ -78,4 +78,3 @@ module "backend_network" {
 
   tags = merge(local.tags, { Tier = "backend" })
 }
-

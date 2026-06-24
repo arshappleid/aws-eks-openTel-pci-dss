@@ -1,4 +1,4 @@
-# Custom network module wrapping Anton Babenko's AWS VPC module
+
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.19"
@@ -39,7 +39,7 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
   vpc_id             = module.vpc.vpc_id
   subnet_ids         = length(module.vpc.intra_subnets) > 0 ? module.vpc.intra_subnets : module.vpc.private_subnets
 
-  # Disable default association and propagation to enforce manual configuration (PCI-DSS compliance)
+
   transit_gateway_default_route_table_association = false
   transit_gateway_default_route_table_propagation = false
   appliance_mode_support                          = "enable"
@@ -50,7 +50,7 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
 }
 
 resource "aws_ec2_transit_gateway_route_table_association" "this" {
-  count = (var.transit_gateway_id != null && var.transit_gateway_id != "" && 
+  count = (var.transit_gateway_id != null && var.transit_gateway_id != "" &&
            var.transit_gateway_route_table_association_id != null && var.transit_gateway_route_table_association_id != "") ? 1 : 0
 
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.this[0].id
@@ -58,7 +58,7 @@ resource "aws_ec2_transit_gateway_route_table_association" "this" {
 }
 
 resource "aws_ec2_transit_gateway_route_table_propagation" "this" {
-  count = (var.transit_gateway_id != null && var.transit_gateway_id != "" && 
+  count = (var.transit_gateway_id != null && var.transit_gateway_id != "" &&
            var.transit_gateway_route_table_propagation_id != null && var.transit_gateway_route_table_propagation_id != "") ? 1 : 0
 
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.this[0].id
@@ -66,7 +66,7 @@ resource "aws_ec2_transit_gateway_route_table_propagation" "this" {
 }
 
 resource "aws_ec2_transit_gateway_route" "spoke_in_firewall" {
-  count = (var.transit_gateway_id != null && var.transit_gateway_id != "" && 
+  count = (var.transit_gateway_id != null && var.transit_gateway_id != "" &&
            var.transit_gateway_route_table_propagation_id != null && var.transit_gateway_route_table_propagation_id != "") ? 1 : 0
 
   destination_cidr_block         = var.vpc_cidr
@@ -75,7 +75,7 @@ resource "aws_ec2_transit_gateway_route" "spoke_in_firewall" {
 }
 
 locals {
-  # Generate list of combinations for VPC route tables and TGW destination CIDRs
+
   vpc_route_tables = var.transit_gateway_id != null && var.transit_gateway_id != "" ? concat(
     module.vpc.private_route_table_ids,
     module.vpc.public_route_table_ids,
@@ -101,4 +101,3 @@ resource "aws_route" "tgw" {
 
   depends_on = [aws_ec2_transit_gateway_vpc_attachment.this]
 }
-

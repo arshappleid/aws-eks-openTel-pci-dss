@@ -1,4 +1,4 @@
-# Dynamic Lookups for Shared Transit Gateway and Route Tables
+
 data "aws_ec2_transit_gateway" "this" {
   filter {
     name   = "tag:Name"

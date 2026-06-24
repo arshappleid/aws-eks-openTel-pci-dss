@@ -144,7 +144,7 @@ jobs:
 
             - name: Install Semgrep using JFrog
               run: |
-                  # Point the CLI to your JFrog PyPI virtual repository
+                  
                   jf pip-config --repo-resolve ${{ env.JFROG_PYPI_REPO }}
                   jf pip install semgrep
 

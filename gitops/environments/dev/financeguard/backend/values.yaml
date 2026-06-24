@@ -1,4 +1,4 @@
-# Dev backend environment override values
+
 replicaCount: 2
 
 appName: financeguard-backend

@@ -1,4 +1,4 @@
-# VPC Endpoints for the Shared Inspection VPC (PCI-DSS compliance)
+
 
 resource "aws_security_group" "vpc_endpoints" {
   name        = "vpc-endpoints-sg"
@@ -25,7 +25,7 @@ resource "aws_security_group" "vpc_endpoints" {
   })
 }
 
-# 1. S3 Gateway Endpoint (connected to all Route Tables)
+
 resource "aws_vpc_endpoint" "s3" {
   vpc_id            = module.inspection_vpc.vpc_id
   service_name      = "com.amazonaws.${var.aws_region}.s3"
@@ -41,7 +41,7 @@ resource "aws_vpc_endpoint" "s3" {
   })
 }
 
-# 2. SSM Interface Endpoint
+
 resource "aws_vpc_endpoint" "ssm" {
   vpc_id              = module.inspection_vpc.vpc_id
   service_name        = "com.amazonaws.${var.aws_region}.ssm"
@@ -55,7 +55,7 @@ resource "aws_vpc_endpoint" "ssm" {
   })
 }
 
-# 3. SSM Messages Interface Endpoint (required for session shell connection)
+
 resource "aws_vpc_endpoint" "ssmmessages" {
   vpc_id              = module.inspection_vpc.vpc_id
   service_name        = "com.amazonaws.${var.aws_region}.ssmmessages"
@@ -69,7 +69,7 @@ resource "aws_vpc_endpoint" "ssmmessages" {
   })
 }
 
-# 4. EC2 Messages Interface Endpoint (required by SSM Agent)
+
 resource "aws_vpc_endpoint" "ec2messages" {
   vpc_id              = module.inspection_vpc.vpc_id
   service_name        = "com.amazonaws.${var.aws_region}.ec2messages"

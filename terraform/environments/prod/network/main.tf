@@ -1,4 +1,4 @@
-# Prod Environment Configuration
+
 locals {
   environment           = "prod"
   app_name              = "financeguard"
@@ -11,7 +11,7 @@ locals {
   }
 }
 
-# Dynamic Lookups for Shared Transit Gateway and Route Tables
+
 data "aws_ec2_transit_gateway" "this" {
   filter {
     name   = "tag:Name"
@@ -33,7 +33,7 @@ data "aws_ec2_transit_gateway_route_table" "inspection" {
   }
 }
 
-# Look up Inspection VPC to allow specific routing policies if needed
+
 data "aws_vpc" "inspection" {
   filter {
     name   = "tag:Purpose"
@@ -41,7 +41,7 @@ data "aws_vpc" "inspection" {
   }
 }
 
-# Prod Frontend Network Module (VPC)
+
 module "frontend_network" {
   source = "../../../modules/network"
   env    = local.environment
@@ -52,11 +52,11 @@ module "frontend_network" {
   private_subnets = ["10.10.1.0/24", "10.10.2.0/24", "10.10.3.0/24"]
   intra_subnets   = ["10.10.250.0/28", "10.10.250.16/28", "10.10.250.32/28"]
 
-  # High availability for production: NAT Gateway per AZ
+
   single_nat_gateway = false
   cluster_name       = local.frontend_cluster_name
 
-  # TGW Connection & Routing Setup
+
   transit_gateway_id                         = data.aws_ec2_transit_gateway.this.id
   transit_gateway_route_table_association_id = data.aws_ec2_transit_gateway_route_table.spokes.id
   transit_gateway_route_table_propagation_id = data.aws_ec2_transit_gateway_route_table.inspection.id
@@ -65,7 +65,7 @@ module "frontend_network" {
   tags = merge(local.tags, { Tier = "frontend" })
 }
 
-# Prod Backend Network Module (VPC)
+
 module "backend_network" {
   source = "../../../modules/network"
   env    = local.environment
@@ -76,11 +76,11 @@ module "backend_network" {
   private_subnets = ["10.20.1.0/24", "10.20.2.0/24", "10.20.3.0/24"]
   intra_subnets   = ["10.20.250.0/28", "10.20.250.16/28", "10.20.250.32/28"]
 
-  # High availability for production: NAT Gateway per AZ
+
   single_nat_gateway = false
   cluster_name       = local.backend_cluster_name
 
-  # TGW Connection & Routing Setup
+
   transit_gateway_id                         = data.aws_ec2_transit_gateway.this.id
   transit_gateway_route_table_association_id = data.aws_ec2_transit_gateway_route_table.spokes.id
   transit_gateway_route_table_propagation_id = data.aws_ec2_transit_gateway_route_table.inspection.id
@@ -88,4 +88,3 @@ module "backend_network" {
 
   tags = merge(local.tags, { Tier = "backend" })
 }
-

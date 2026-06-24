@@ -27,12 +27,12 @@ spec:
                 path: helm/financeguard
                 helm:
                     valueFiles:
-                        # Core environment & tier overrides
+                        
                         - ../../gitops/environments/{{env}}/financeguard/{{tier}}/values.yaml
-                        # Dynamic image digest updated by CI/CD
+                        
                         - ../../gitops/environments/{{env}}/financeguard/{{tier}}/image-digest.yaml
             destination:
-                # Assumes you add your EKS clusters to ArgoCD using their cluster names
+                
                 name: "financeguard-{{env}}-{{tier}}"
                 namespace: financeguard
             syncPolicy:

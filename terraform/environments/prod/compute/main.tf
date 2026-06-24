@@ -1,4 +1,4 @@
-# Prod Environment Configuration
+
 locals {
   environment           = "prod"
   app_name              = "financeguard"
@@ -47,7 +47,7 @@ data "aws_subnets" "backend_private" {
 }
 
 
-# Frontend EKS Cluster Module
+
 module "frontend_eks" {
   providers = {
     helm       = helm.frontend
@@ -62,7 +62,7 @@ module "frontend_eks" {
   subnet_ids                     = data.aws_subnets.frontend_private.ids
   cluster_endpoint_public_access = var.cluster_endpoint_public_access
 
-  # Highly Available Node Groups for Prod Frontend
+
   eks_managed_node_groups = {
     frontend_nodes = {
       min_size     = 2
@@ -72,7 +72,7 @@ module "frontend_eks" {
       instance_types = ["m5.large"]
       capacity_type  = "ON_DEMAND"
 
-      # Security compliance: Encrypted root volume for PCI-DSS
+
       block_device_mappings = {
         xvda = {
           device_name = "/dev/xvda"
@@ -95,7 +95,7 @@ module "frontend_eks" {
   tags = merge(local.tags, { Tier = "frontend" })
 }
 
-# Prod Backend EKS Cluster Module
+
 module "backend_eks" {
   providers = {
     helm       = helm.backend
@@ -110,7 +110,7 @@ module "backend_eks" {
   subnet_ids                     = data.aws_subnets.backend_private.ids
   cluster_endpoint_public_access = var.cluster_endpoint_public_access
 
-  # Highly Available Node Groups for Prod Backend
+
   eks_managed_node_groups = {
     backend_nodes = {
       min_size     = 2
@@ -120,7 +120,7 @@ module "backend_eks" {
       instance_types = ["m5.large"]
       capacity_type  = "ON_DEMAND"
 
-      # Security compliance: Encrypted root volume for PCI-DSS
+
       block_device_mappings = {
         xvda = {
           device_name = "/dev/xvda"
@@ -142,6 +142,5 @@ module "backend_eks" {
 
   tags = merge(local.tags, { Tier = "backend" })
 }
-
 
 

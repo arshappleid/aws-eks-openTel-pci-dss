@@ -1,4 +1,4 @@
-# Stage Environment Configuration
+
 locals {
   environment           = "stage"
   app_name              = "financeguard"
@@ -11,7 +11,7 @@ locals {
   }
 }
 
-# Frontend EKS Cluster Module
+
 
 module "frontend_eks" {
   providers = {
@@ -26,7 +26,7 @@ module "frontend_eks" {
   vpc_id          = data.aws_vpc.frontend.id
   subnet_ids      = data.aws_subnets.frontend_private.ids
 
-  # Highly Available Node Groups for Staging Frontend
+
   eks_managed_node_groups = {
     frontend_nodes = {
       min_size     = 2
@@ -46,7 +46,7 @@ module "frontend_eks" {
   tags = merge(local.tags, { Tier = "frontend" })
 }
 
-# Staging Backend EKS Cluster Module
+
 module "backend_eks" {
   providers = {
     helm       = helm.backend
@@ -60,7 +60,7 @@ module "backend_eks" {
   vpc_id          = data.aws_vpc.backend.id
   subnet_ids      = data.aws_subnets.backend_private.ids
 
-  # Highly Available Node Groups for Staging Backend
+
   eks_managed_node_groups = {
     backend_nodes = {
       min_size     = 2
@@ -79,5 +79,4 @@ module "backend_eks" {
 
   tags = merge(local.tags, { Tier = "backend" })
 }
-
 
