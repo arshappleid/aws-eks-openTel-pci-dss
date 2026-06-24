@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: financeguard-frontend
+    namespace: financeguard
     labels:
         app: financeguard-frontend
 spec:
@@ -88,6 +89,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
     name: financeguard-frontend-otel-config
+    namespace: financeguard
 data:
     otel-collector-config.yaml: |
         receivers:
@@ -157,6 +159,7 @@ apiVersion: v1
 kind: Service
 metadata:
     name: financeguard-frontend-service
+    namespace: financeguard
 spec:
     selector:
         app: financeguard-frontend

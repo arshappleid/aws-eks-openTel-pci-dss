@@ -194,7 +194,6 @@ jobs:
 
             - name: Update Deployment Image
               run: |
-                  kubectl set image deployment/financeguard-frontend react-frontend=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_NAME }}:${{ github.sha }}
-                
+                  kubectl set image deployment/financeguard-frontend react-frontend=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_NAME }}:${{ github.sha }} -n financeguard
             - name: Wait for Rollout
-              run: kubectl rollout status deployment/financeguard-frontend --timeout=600s
+              run: kubectl rollout status deployment/financeguard-frontend -n financeguard --timeout=600s

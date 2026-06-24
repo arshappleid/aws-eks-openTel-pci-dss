@@ -106,6 +106,31 @@ Our end-to-end PCI-DSS compliant architecture integrates the following core tool
 
 ---
 
+# 🌍 Environment Management
+
+Three fully isolated environments — each with its own VPC, EKS clusters, and Terraform state.
+
+| Layer | `dev` | `stage` | `prod` |
+|---|---|---|---|
+| **VPC CIDRs** | `10.12/10.22` | `10.13/10.23` | `10.14/10.24` |
+| **EKS Node Size** | `t3.medium` | `t3.large` | `t3.xlarge` |
+| **Replicas** | 1 | 2 | 3+ |
+| **Branch** | `dev` | `stage` | `prod` |
+| **ALB Path Prefix** | `/dev/*` | `/stage/*` | `/prod/*` |
+
+**How promotion works:**
+1. Developer pushes to `dev` → pipeline builds, tests, and deploys to the `dev` EKS clusters
+2. PR merged to `stage` → same pipeline runs against stage clusters, ALB routes `/stage/*` to new pods
+3. PR merged to `prod` → production deploy with identical artifacts (same image digest, different env config)
+
+**Environment isolation enforced by:**
+- Separate Terraform state files per environment (`environments/dev/`, `environments/stage/`, `environments/prod/`)
+- Separate VPCs connected only via Transit Gateway through the central Inspection VPC
+- `ENVIRONMENT` env var injected at deploy time — pods are identical images, config differs only via env vars
+- Per-environment Kubernetes namespaces (`financeguard`) on separate EKS clusters
+
+---
+
 # 📊 Observability Stack
 
 A complete, Dockerized monitoring suite running on the Bastion server.
