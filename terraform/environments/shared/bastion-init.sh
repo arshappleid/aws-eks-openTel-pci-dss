@@ -6,6 +6,7 @@ set -euo pipefail
 
 
 yum update -y
+yum install git -y
 amazon-linux-extras install docker -y
 amazon-linux-extras install ansible2 -y
 service docker start

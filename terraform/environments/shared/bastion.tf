@@ -51,7 +51,7 @@ resource "aws_security_group" "bastion" {
 
 resource "aws_instance" "bastion" {
   ami           = data.aws_ami.amazon_linux_2.id
-  instance_type = "t3.large"
+  instance_type = "c5.2xlarge"
   key_name      = "prab-key-pair"
 
   instance_market_options {
