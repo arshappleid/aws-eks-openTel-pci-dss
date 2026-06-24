@@ -24,3 +24,11 @@ service:
   port: 80
   targetPort: 80
 
+otelSidecar:
+  enabled: true
+  environment: "dev"
+  centralCollectorEndpoint: "otel-collector.financeguard.local"
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: "0.104.0"
+

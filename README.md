@@ -118,8 +118,6 @@ All monitoring, metrics, logging, tracing, and continuous delivery tools are hos
 | **Prometheus** | `http://<bastion-ip>/prometheus/` | Scraping status, target health, and query editor |
 | **Jaeger** | `http://<bastion-ip>/jaeger/` | Distributed tracing search and dependency graphs |
 | **Loki** | `http://<bastion-ip>/loki/` | Container log ingestion api path |
-| **Wazuh** | `http://<bastion-ip>/wazuh/` | Security information and event management (SIEM) dashboard |
-| **OpenSearch** | `http://<bastion-ip>/opensearch/` | Central security and logs indexer database API |
 | **Argo CD** | `http://<bastion-ip>/argocd/` | GitOps continuous delivery console (optional proxy route) |
 
 

@@ -1,0 +1,78 @@
+{{- if .Values.otelSidecar.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.appName | default (include "financeguard.fullname" .) }}-otel-config
+  labels:
+    {{- include "financeguard.labels" . | nindent 4 }}
+data:
+  otel-collector-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: "0.0.0.0:4317"
+          http:
+            endpoint: "0.0.0.0:4318"
+
+    processors:
+      batch:
+        timeout: 5s
+        send_batch_size: 512
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 20
+      resource:
+        attributes:
+          - key: service.name
+            value: {{ .Values.appName | default (include "financeguard.name" .) | quote }}
+            action: upsert
+          - key: deployment.environment
+            value: {{ .Values.otelSidecar.environment | default "dev" | quote }}
+            action: upsert
+
+    exporters:
+      # Traces → Jaeger (all-in-one) in inspection VPC via Cloud Map DNS
+      otlp/jaeger:
+        endpoint: "{{ .Values.otelSidecar.centralCollectorEndpoint }}:4317"
+        tls:
+          insecure: true
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+          max_elapsed_time: 120s
+
+      # Metrics → Prometheus remote-write in inspection VPC (exposed via Nginx at /prometheus/)
+      prometheusremotewrite:
+        endpoint: "http://{{ .Values.otelSidecar.centralCollectorEndpoint }}/prometheus/api/v1/write"
+        tls:
+          insecure_skip_verify: false
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+
+      # Logs → Loki in inspection VPC (exposed via Nginx at /loki/)
+      loki:
+        endpoint: "http://{{ .Values.otelSidecar.centralCollectorEndpoint }}/loki/loki/api/v1/push"
+        default_labels_enabled:
+          exporter: false
+          job: true
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, resource, batch]
+          exporters: [otlp/jaeger]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, resource, batch]
+          exporters: [prometheusremotewrite]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, resource, batch]
+          exporters: [loki]
+{{- end }}

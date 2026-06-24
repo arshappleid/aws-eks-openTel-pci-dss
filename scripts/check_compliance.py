@@ -21,10 +21,7 @@ def check_security_groups (ec2_client ,tag_key ,tag_values ):
     restricted_ports ={
     22 :"SSH",
     3389 :"RDP",
-    5432 :"PostgreSQL",
-    1514 :"Wazuh Agent",
-    1515 :"Wazuh Enroll",
-    9200 :"OpenSearch"
+    5432 :"PostgreSQL"
     }
 
     try :

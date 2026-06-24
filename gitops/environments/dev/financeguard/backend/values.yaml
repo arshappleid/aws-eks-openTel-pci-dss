@@ -19,5 +19,15 @@ resources:
 env:
   - name: ENVIRONMENT
     value: "dev"
+  # App sends telemetry to the local OTEL sidecar; sidecar forwards to the central
+  # collector in the inspection VPC via Cloud Map DNS (otel-collector.financeguard.local).
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
-    value: "http://otel-collector.financeguard.local:4317"
+    value: "http://localhost:4317"
+
+otelSidecar:
+  enabled: true
+  environment: "dev"
+  centralCollectorEndpoint: "otel-collector.financeguard.local"
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: "0.104.0"

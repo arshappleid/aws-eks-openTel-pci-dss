@@ -26,6 +26,7 @@ jobs:
             - name: Build slides
               run: |
                 mkdir -p dist
+                cp -r docs/images dist/images
                 npx @marp-team/marp-cli@latest docs/presentation.md -o dist/index.html
 
             - name: Upload pages artifact

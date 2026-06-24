@@ -1,7 +1,5 @@
 #!/bin/bash
 
-
-
 set -euo pipefail
 
 
@@ -17,10 +15,6 @@ chkconfig docker on
 curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
 ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-
-
-sysctl -w vm.max_map_count=262144
-echo "vm.max_map_count=262144" >> /etc/sysctl.conf
 
 
 docker network create monitoring || true
@@ -48,24 +42,6 @@ http {
 
         location /loki/ {
             proxy_pass http://loki:3100/;
-        }
-
-        location /opensearch/ {
-            proxy_pass https://wazuh.indexer:9200/;
-            proxy_ssl_verify off;
-            proxy_set_header Host $http_host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-
-        location /wazuh/ {
-            proxy_pass https://wazuh.dashboard:5601/;
-            proxy_ssl_verify off;
-            proxy_set_header Host $http_host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
         }
 
         location / {
@@ -119,7 +95,6 @@ cp /opt/aws-eks-openTel-pci-dss/terraform/environments/shared/grafana/dashboards
 cp /opt/aws-eks-openTel-pci-dss/terraform/environments/shared/grafana/eks-infrastructure.json /opt/grafana/provisioning/dashboards/eks-infrastructure.json
 cp /opt/aws-eks-openTel-pci-dss/terraform/environments/shared/grafana/application-performance.json /opt/grafana/provisioning/dashboards/application-performance.json
 cp /opt/aws-eks-openTel-pci-dss/terraform/environments/shared/grafana/log-analytics.json /opt/grafana/provisioning/dashboards/log-analytics.json
-cp /opt/aws-eks-openTel-pci-dss/terraform/environments/shared/grafana/security-alerts.json /opt/grafana/provisioning/dashboards/security-alerts.json
 
 
 EMAILS=$(cat /opt/aws-eks-openTel-pci-dss/terraform/environments/shared/grafana/alert-emails.txt | tr -d '\n\r')
@@ -148,41 +123,3 @@ docker run -d --name loki --restart always --network monitoring \
 docker run -d --name nginx --restart always --network monitoring -p 80:80 \
   -v /opt/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
   nginx
-
-
-git clone https://github.com/wazuh/wazuh-docker.git -b v4.14.5 /opt/wazuh-docker
-cd /opt/wazuh-docker/single-node
-
-
-sed -i 's/- "1514:1514"/- "1514:1514"\n      - "514:514\/udp"/' docker-compose.yml
-
-docker-compose -f generate-indexer-certs.yml run --rm generator
-docker-compose up -d
-
-
-sleep 45
-docker exec wazuh.manager sed -i '/<\/ossec_config>/i \  <remote>\n    <connection>syslog<\/connection>\n    <port>514<\/port>\n    <protocol>udp<\/protocol>\n    <allowed-ips>10.0.0.0\/8<\/allowed-ips>\n  <\/remote>' /var/ossec/etc/ossec.conf
-docker restart wazuh.manager
-
-
-sleep 15
-docker network connect single-node_default nginx || true
-
-
-rpm --import https://packages.wazuh.com/key/GPG-KEY-WAZUH
-cat > /etc/yum.repos.d/wazuh.repo << 'EOF'
-[wazuh]
-name=Wazuh repository
-baseurl=https://packages.wazuh.com/4.x/yum/
-gpgcheck=1
-gpgkey=https://packages.wazuh.com/key/GPG-KEY-WAZUH
-enabled=1
-EOF
-
-
-WAZUH_MANAGER="127.0.0.1" yum install wazuh-agent-4.14.5 -y
-
-
-systemctl daemon-reload
-systemctl enable wazuh-agent
-systemctl start wazuh-agent

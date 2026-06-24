@@ -27,3 +27,16 @@ resources:
     memory: 256Mi
 
 env: []
+
+# OTEL sidecar collector — disabled by default; enabled per-environment in gitops values.
+# When enabled, the app should point OTEL_EXPORTER_OTLP_ENDPOINT to http://localhost:4317
+# so the sidecar relays telemetry to the central observability stack in the inspection VPC.
+otelSidecar:
+  enabled: false
+  environment: "dev"
+  # Cloud Map private DNS resolving to the bastion in the inspection VPC.
+  # Bastion exposes: Jaeger OTLP on :4317, Prometheus at /prometheus/, Loki at /loki/
+  centralCollectorEndpoint: "otel-collector.financeguard.local"
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: "0.104.0"

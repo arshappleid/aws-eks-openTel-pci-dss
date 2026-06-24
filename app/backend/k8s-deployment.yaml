@@ -24,8 +24,9 @@ spec:
                   env:
                       - name: ENVIRONMENT
                         value: "dev"
+                      # Points to the OTEL sidecar on localhost; sidecar forwards to inspection VPC.
                       - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                        value: "http://otel-collector.financeguard.local:4317"
+                        value: "http://localhost:4317"
 
                   
                   resources:
@@ -35,6 +36,123 @@ spec:
                       limits:
                           memory: "512Mi"
                           cpu: "500m"
+
+                # ---- OTEL Collector sidecar ----
+                # Receives telemetry from the app on localhost:4317/4318 and
+                # forwards to the central observability stack in the inspection VPC
+                # via Cloud Map DNS: otel-collector.financeguard.local
+                #   Traces  → Jaeger OTLP gRPC  :4317
+                #   Metrics → Prometheus remote-write  /prometheus/api/v1/write
+                #   Logs    → Loki push  /loki/loki/api/v1/push
+                - name: otel-collector
+                  image: otel/opentelemetry-collector-contrib:0.104.0
+                  imagePullPolicy: IfNotPresent
+                  args:
+                      - "--config=/etc/otel/otel-collector-config.yaml"
+                  ports:
+                      - name: otlp-grpc
+                        containerPort: 4317
+                        protocol: TCP
+                      - name: otlp-http
+                        containerPort: 4318
+                        protocol: TCP
+                  resources:
+                      requests:
+                          cpu: "50m"
+                          memory: "64Mi"
+                      limits:
+                          cpu: "200m"
+                          memory: "256Mi"
+                  volumeMounts:
+                      - name: otel-config
+                        mountPath: /etc/otel
+                        readOnly: true
+                  livenessProbe:
+                      httpGet:
+                          path: /
+                          port: 13133
+                      initialDelaySeconds: 10
+                      periodSeconds: 30
+                  readinessProbe:
+                      httpGet:
+                          path: /
+                          port: 13133
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+
+            volumes:
+                - name: otel-config
+                  configMap:
+                      name: financeguard-backend-otel-config
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: financeguard-backend-otel-config
+data:
+    otel-collector-config.yaml: |
+        receivers:
+          otlp:
+            protocols:
+              grpc:
+                endpoint: "0.0.0.0:4317"
+              http:
+                endpoint: "0.0.0.0:4318"
+
+        processors:
+          batch:
+            timeout: 5s
+            send_batch_size: 512
+          memory_limiter:
+            check_interval: 1s
+            limit_percentage: 75
+            spike_limit_percentage: 20
+          resource:
+            attributes:
+              - key: service.name
+                value: "financeguard-backend"
+                action: upsert
+              - key: deployment.environment
+                value: "dev"
+                action: upsert
+
+        exporters:
+          otlp/jaeger:
+            endpoint: "otel-collector.financeguard.local:4317"
+            tls:
+              insecure: true
+            retry_on_failure:
+              enabled: true
+              initial_interval: 5s
+              max_interval: 30s
+              max_elapsed_time: 120s
+          prometheusremotewrite:
+            endpoint: "http://otel-collector.financeguard.local/prometheus/api/v1/write"
+            retry_on_failure:
+              enabled: true
+              initial_interval: 5s
+              max_interval: 30s
+          loki:
+            endpoint: "http://otel-collector.financeguard.local/loki/loki/api/v1/push"
+            default_labels_enabled:
+              exporter: false
+              job: true
+
+        service:
+          pipelines:
+            traces:
+              receivers: [otlp]
+              processors: [memory_limiter, resource, batch]
+              exporters: [otlp/jaeger]
+            metrics:
+              receivers: [otlp]
+              processors: [memory_limiter, resource, batch]
+              exporters: [prometheusremotewrite]
+            logs:
+              receivers: [otlp]
+              processors: [memory_limiter, resource, batch]
+              exporters: [loki]
 
 ---
 apiVersion: v1
