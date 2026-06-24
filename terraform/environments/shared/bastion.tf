@@ -64,11 +64,14 @@ resource "aws_instance" "bastion" {
 
   user_data = templatefile("${path.module}/bastion-init.sh", {
     dashboards_yaml = file("${path.module}/grafana/dashboards.yaml")
-    dashboard_json  = file("${path.module}/grafana/financeguard-dashboard.json")
+    eks_infra_json  = file("${path.module}/grafana/eks-infrastructure.json")
+    app_perf_json   = file("${path.module}/grafana/application-performance.json")
+    logs_json       = file("${path.module}/grafana/log-analytics.json")
     alerting_yaml   = templatefile("${path.module}/grafana/alerting.yaml", {
       emails = trimspace(file("${path.module}/grafana/alert-emails.txt"))
     })
   })
+
 
 
 

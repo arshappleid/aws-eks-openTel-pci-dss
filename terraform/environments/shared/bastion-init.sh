@@ -4,12 +4,14 @@
 # ==============================================================================
 set -euo pipefail
 
-# 1. System updates and Docker installation
+# 1. System updates and Docker/Ansible installation
 yum update -y
 amazon-linux-extras install docker -y
+amazon-linux-extras install ansible2 -y
 service docker start
 usermod -a -G docker ec2-user
 chkconfig docker on
+
 
 # 2. Network configuration
 docker network create monitoring || true
@@ -85,9 +87,18 @@ cat << 'GRAFANA_DB_PROV' > /opt/grafana/provisioning/dashboards/dashboards.yaml
 ${dashboards_yaml}
 GRAFANA_DB_PROV
 
-cat << 'GRAFANA_DB_JSON' > /opt/grafana/provisioning/dashboards/financeguard-dashboard.json
-${dashboard_json}
-GRAFANA_DB_JSON
+cat << 'GRAFANA_DB_INFRA' > /opt/grafana/provisioning/dashboards/eks-infrastructure.json
+${eks_infra_json}
+GRAFANA_DB_INFRA
+
+cat << 'GRAFANA_DB_PERF' > /opt/grafana/provisioning/dashboards/application-performance.json
+${app_perf_json}
+GRAFANA_DB_PERF
+
+cat << 'GRAFANA_DB_LOGS' > /opt/grafana/provisioning/dashboards/log-analytics.json
+${logs_json}
+GRAFANA_DB_LOGS
+
 
 # Create Grafana alerting provisioning configuration
 mkdir -p /opt/grafana/provisioning/alerting

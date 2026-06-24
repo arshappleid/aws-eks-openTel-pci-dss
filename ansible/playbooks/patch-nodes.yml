@@ -1,0 +1,12 @@
+- name: Upgrade OS Packages on EKS Nodes
+  hosts: eks_nodes
+  become: yes
+  tasks:
+    - name: Upgrade all packages
+      yum:
+        name: '*'
+        state: latest
+        update_cache: yes
+    - name: Reboot instance
+      reboot:
+        reboot_timeout: 300

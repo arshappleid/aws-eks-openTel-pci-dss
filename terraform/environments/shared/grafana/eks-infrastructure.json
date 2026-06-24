@@ -24,7 +24,7 @@
     {
       "collapsed": false,
       "gridPos": {
-        "h": 8,
+        "h": 10,
         "w": 12,
         "x": 0,
         "y": 0
@@ -62,7 +62,7 @@
     {
       "collapsed": false,
       "gridPos": {
-        "h": 8,
+        "h": 10,
         "w": 12,
         "x": 12,
         "y": 0
@@ -96,70 +96,6 @@
           "unit": "bytes"
         }
       }
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 8
-      },
-      "id": 3,
-      "title": "Application Request Volumes (FastAPI HTTP Request Rate)",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "sum(rate(http_requests_total[5m])) by (status, path)",
-          "legendFormat": "HTTP {{status}} - {{path}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth"
-          },
-          "unit": "reqps"
-        }
-      }
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 16
-      },
-      "id": 4,
-      "title": "Centralized Container Pod Logs (Grafana Loki)",
-      "type": "logs",
-      "datasource": {
-        "type": "loki",
-        "uid": "Loki"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "Loki"
-          },
-          "expr": "{namespace=~\".+\"}",
-          "refId": "A"
-        }
-      ]
     }
   ],
   "refresh": "5s",
@@ -167,7 +103,8 @@
   "style": "dark",
   "tags": [
     "financeguard",
-    "eks"
+    "eks",
+    "infrastructure"
   ],
   "time": {
     "from": "now-1h",
@@ -175,7 +112,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "FinanceGuard EKS Platform Control Center",
-  "uid": "financeguard-platform",
+  "title": "FinanceGuard - EKS Cluster Infrastructure Monitoring",
+  "uid": "eks-infrastructure",
   "version": 1
 }
