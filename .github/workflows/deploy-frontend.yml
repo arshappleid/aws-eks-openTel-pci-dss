@@ -101,6 +101,22 @@ jobs:
               run: |
                   jf rt upload "${{ env.REPO_ROOT_FOLDER_NAME }}/junit.xml" "${{ env.JFROG_REPORTS_REPO }}/frontend-reports/${{ github.run_id }}/junit-report.xml"
 
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ env.GITHUB_ACTION_IAM_ROLE }}
+                  aws-region: ${{ env.AWS_REGION }}
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Pull image
+              env:
+                  ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                  IMAGE_TAG: ${{ github.sha }}
+              run: docker pull $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG
+
             - name: Run Trivy Vulnerability Scanner
               uses: aquasecurity/trivy-action@master
               with:
@@ -110,6 +126,7 @@ jobs:
                   ignore-unfixed: true
                   vuln-type: "os,library"
                   severity: "CRITICAL,HIGH"
+
 
     static-scan:
         name: Static Application Security Testing (SAST)
