@@ -108,7 +108,22 @@ terraform apply --auto-approve
 
 ---
 
+## Observability & Dashboards
+
+All monitoring, metrics, logging, tracing, and continuous delivery tools are hosted on the central Bastion server in the shared Inspection VPC. They are securely reverse-proxied by Nginx on Port 80:
+
+| Dashboard | URL | Purpose |
+|-----------|-----|---------|
+| **Grafana** | `http://<bastion-ip>/grafana/` <br />(or root `http://<bastion-ip>/`) | Central metrics & logs visualization dashboard |
+| **Prometheus** | `http://<bastion-ip>/prometheus/` | Scraping status, target health, and query editor |
+| **Jaeger** | `http://<bastion-ip>/jaeger/` | Distributed tracing search and dependency graphs |
+| **Loki** | `http://<bastion-ip>/loki/` | Container log ingestion api path |
+| **Argo CD** | `http://<bastion-ip>/argocd/` | GitOps continuous delivery console (optional proxy route) |
+
+---
+
 ## Contributing
+
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on pull requests, issue reporting, and branching strategy.
 

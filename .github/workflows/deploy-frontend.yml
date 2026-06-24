@@ -1,0 +1,178 @@
+name: Deploy Frontend Service
+
+on:
+    push:
+        branches: ["stage", "prod", "dev"]
+        paths:
+            - "app/frontend/**"
+            - "app/frontend/k8s-deployment.yaml"
+    workflow_dispatch:
+
+env:
+    AWS_REGION: us-east-1
+    ECR_REPOSITORY_NAME: prab-eks-frontend
+    GITHUB_ACTION_IAM_ROLE: arn:aws:iam::866934333672:role/GITHUB-ACTIONS-ALL-REPO
+    CONTAINER_NAME: react-frontend
+    REPO_ROOT_FOLDER_NAME: app/frontend
+    JFROG_PYPI_REPO: prab-eks-pypi
+    JFROG_REPORTS_REPO: prab-eks-reports
+
+permissions:
+    id-token: write
+    contents: read
+
+jobs:
+    build:
+        name: Build Source Code
+        runs-on: ubuntu-24.04
+        timeout-minutes: 10
+        outputs:
+            image: ${{ steps.build-image.outputs.image }}
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.sha }}
+
+            - name: Set up Docker Build
+              uses: docker/setup-buildx-action@v3
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ env.GITHUB_ACTION_IAM_ROLE }}
+                  aws-region: ${{ env.AWS_REGION }}
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Build and push ${{ env.ECR_REPOSITORY_NAME }} image
+              id: build-image
+              env:
+                  ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                  IMAGE_TAG: ${{ github.sha }}
+              run: |
+                  docker build --platform linux/amd64 \
+                      -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG \
+                      -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:latest \
+                      -f $REPO_ROOT_FOLDER_NAME/Dockerfile \
+                      $REPO_ROOT_FOLDER_NAME
+                  docker push $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG
+                  docker push $ECR_REGISTRY/$ECR_REPOSITORY_NAME:latest
+                  echo "image=$ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+    unit_test:
+        name: Unit Testing
+        runs-on: ubuntu-24.04
+        needs: build
+        timeout-minutes: 10
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+
+            - name: Install dependencies
+              working-directory: ${{ env.REPO_ROOT_FOLDER_NAME }}
+              run: npm install
+
+            - name: Run Jest Unit Tests
+              working-directory: ${{ env.REPO_ROOT_FOLDER_NAME }}
+              env:
+                  CI: true
+              run: |
+                  npm install jest-junit --save-dev
+                  npm test -- --reporters=default --reporters=jest-junit --watchAll=false
+
+            - name: Set up JFrog CLI
+              uses: jfrog/setup-jfrog-cli@v4
+              env:
+                  JF_URL: https://pdeol.jfrog.io/
+                  JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+
+            - name: Upload Unit Test Report to JFrog
+              if: always()
+              run: |
+                  jf rt upload "${{ env.REPO_ROOT_FOLDER_NAME }}/junit.xml" "${{ env.JFROG_REPORTS_REPO }}/frontend-reports/${{ github.run_id }}/junit-report.xml"
+
+            - name: Run Trivy Vulnerability Scanner
+              uses: aquasecurity/trivy-action@master
+              with:
+                  image-ref: ${{ needs.build.outputs.image }}
+                  format: "table"
+                  exit-code: "1"
+                  ignore-unfixed: true
+                  vuln-type: "os,library"
+                  severity: "CRITICAL,HIGH"
+
+    static-scan:
+        name: Static Application Security Testing (SAST)
+        runs-on: ubuntu-24.04
+        needs: unit_test
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Set up JFrog CLI
+              uses: jfrog/setup-jfrog-cli@v4
+              env:
+                  JF_URL: https://pdeol.jfrog.io/
+                  JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+
+            - name: Install Semgrep using JFrog
+              run: |
+                  # Point the CLI to your JFrog PyPI virtual repository
+                  jf pip-config --repo-resolve ${{ env.JFROG_PYPI_REPO }}
+                  jf pip install semgrep
+
+            - name: Run Semgrep SAST and Generate Report
+              run: semgrep scan --config p/security-audit --junit-xml -o semgrep-report.xml || true
+
+            - name: Upload SAST Report to JFrog
+              if: always()
+              run: jf rt upload "semgrep-report.xml" "${{ env.JFROG_REPORTS_REPO }}/frontend-reports/${{ github.run_id }}/semgrep-report.xml"
+
+            - name: Enforce SAST Failure
+              run: semgrep scan --config p/security-audit --error
+
+    deploy:
+        name: Deploy Frontend Service
+        runs-on: ubuntu-24.04
+        needs: static-scan
+        environment: ${{ github.ref_name }}
+        timeout-minutes: 10
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.sha }}
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ env.GITHUB_ACTION_IAM_ROLE }}
+                  aws-region: ${{ env.AWS_REGION }}
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Update Kubeconfig for EKS
+              run: aws eks update-kubeconfig --name financeguard-${{ github.ref_name }}-frontend --region ${{ env.AWS_REGION }}
+
+            - name: Apply Kubernetes Manifests
+              run: kubectl apply -f app/frontend/k8s-deployment.yaml
+
+            - name: Update Deployment Image
+              run: |
+                  kubectl set image deployment/financeguard-frontend react-frontend=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_NAME }}:${{ github.sha }}
+                
+            - name: Wait for Rollout
+              run: kubectl rollout status deployment/financeguard-frontend --timeout=300s

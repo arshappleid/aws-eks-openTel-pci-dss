@@ -49,10 +49,12 @@ Secure point of entry and centralized monitoring dashboard.
 
 A complete, Dockerized monitoring suite running on the Bastion server.
 
-- **Prometheus:** Collects application and infrastructure metrics. Accessible via `/prometheus/`.
-- **Grafana:** Visualizes metrics with custom dashboards. Accessible via `/grafana/`.
-- **Jaeger:** Manages distributed request tracing. Accessible via `/jaeger/`.
-- **Argo CD:** Manages Kubernetes application deployments, securely port-forwarded from the EKS clusters.
+- **Grafana Dashboard:** `http://<bastion-ip>/grafana/` (Centralized metrics & logs visualization)
+- **Prometheus Server:** `http://<bastion-ip>/prometheus/` (Raw metrics storage & alerts)
+- **Jaeger Tracing:** `http://<bastion-ip>/jaeger/` (Distributed transaction trace search)
+- **Loki Logger:** `http://<bastion-ip>/loki/` (Container pod log ingestion endpoint)
+- **Argo CD Console:** `http://<bastion-ip>/argocd/` (GitOps deployment dashboard proxy)
+
 
 ---
 
