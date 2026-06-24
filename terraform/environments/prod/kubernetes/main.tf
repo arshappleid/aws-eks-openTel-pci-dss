@@ -276,3 +276,118 @@ resource "helm_release" "backend_aws_lbc" {
     value = data.aws_eks_cluster.backend.vpc_config[0].vpc_id
   }
 }
+
+# OpenTelemetry Collector for Frontend EKS (Prod)
+resource "helm_release" "frontend_otel_collector" {
+  provider         = helm.frontend
+  name             = "otel-collector"
+  repository       = "https://open-telemetry.github.io/opentelemetry-helm-charts"
+  chart            = "opentelemetry-collector"
+  namespace        = "kube-system"
+  version          = "0.91.0"
+  create_namespace = false
+
+  values = [
+    <<-EOT
+    mode: daemonset
+    presets:
+      kubernetesAttributes:
+        enabled: true
+      kubeletMetrics:
+        enabled: true
+      logsCollection:
+        enabled: true
+    config:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+      exporters:
+        otlp/jaeger:
+          endpoint: "otel-collector.financeguard.local:4317"
+          tls:
+            insecure: true
+        prometheusremotewrite:
+          endpoint: "http://otel-collector.financeguard.local/prometheus/api/v1/write"
+          tls:
+            insecure: true
+        loki:
+          endpoint: "http://otel-collector.financeguard.local/loki/api/v1/push"
+      service:
+        pipelines:
+          traces:
+            receivers: [otlp]
+            processors: [memory_limiter, batch]
+            exporters: [otlp/jaeger]
+          metrics:
+            receivers: [otlp, kubeletstats]
+            processors: [memory_limiter, batch]
+            exporters: [prometheusremotewrite]
+          logs:
+            receivers: [otlp, filelog]
+            processors: [memory_limiter, batch]
+            exporters: [loki]
+    EOT
+  ]
+}
+
+# OpenTelemetry Collector for Backend EKS (Prod)
+resource "helm_release" "backend_otel_collector" {
+  provider         = helm.backend
+  name             = "otel-collector"
+  repository       = "https://open-telemetry.github.io/opentelemetry-helm-charts"
+  chart            = "opentelemetry-collector"
+  namespace        = "kube-system"
+  version          = "0.91.0"
+  create_namespace = false
+
+  values = [
+    <<-EOT
+    mode: daemonset
+    presets:
+      kubernetesAttributes:
+        enabled: true
+      kubeletMetrics:
+        enabled: true
+      logsCollection:
+        enabled: true
+    config:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+      exporters:
+        otlp/jaeger:
+          endpoint: "otel-collector.financeguard.local:4317"
+          tls:
+            insecure: true
+        prometheusremotewrite:
+          endpoint: "http://otel-collector.financeguard.local/prometheus/api/v1/write"
+          tls:
+            insecure: true
+        loki:
+          endpoint: "http://otel-collector.financeguard.local/loki/api/v1/push"
+      service:
+        pipelines:
+          traces:
+            receivers: [otlp]
+            processors: [memory_limiter, batch]
+            exporters: [otlp/jaeger]
+          metrics:
+            receivers: [otlp, kubeletstats]
+            processors: [memory_limiter, batch]
+            exporters: [prometheusremotewrite]
+          logs:
+            receivers: [otlp, filelog]
+            processors: [memory_limiter, batch]
+            exporters: [loki]
+    EOT
+  ]
+}
+

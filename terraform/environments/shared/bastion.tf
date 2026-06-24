@@ -92,10 +92,15 @@ resource "aws_instance" "bastion" {
                       location /jaeger/ {
                           proxy_pass http://jaeger:16686;
                       }
+
+                      location /loki/ {
+                          proxy_pass http://loki:3100/;
+                      }
                       
                       location / {
                           return 301 /grafana/;
                       }
+
                   }
               }
               NGINX_CONF
@@ -122,10 +127,15 @@ resource "aws_instance" "bastion" {
                 -e "QUERY_BASE_PATH=/jaeger" \
                 jaegertracing/all-in-one:latest
 
+              # Start Loki for logs
+              docker run -d --name loki --restart always --network monitoring \
+                grafana/loki:latest
+
               # Start Nginx
               docker run -d --name nginx --restart always --network monitoring -p 80:80 \
                 -v /opt/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
                 nginx
+
               EOF
 
   tags = merge(local.common_tags, {
