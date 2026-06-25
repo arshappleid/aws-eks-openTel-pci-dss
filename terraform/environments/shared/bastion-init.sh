@@ -4,12 +4,32 @@ set -euo pipefail
 
 
 yum update -y
-yum install git -y
+yum install git unzip -y
 amazon-linux-extras install docker -y
 amazon-linux-extras install ansible2 -y
 service docker start
 usermod -a -G docker ec2-user
 chkconfig docker on
+
+# Remove pre-installed AWS CLI v1 to prevent conflicts
+yum remove awscli -y || true
+rm -f /usr/bin/aws
+
+# Install AWS CLI v2 (required for newer kubectl v1beta1 auth)
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip -q awscliv2.zip
+./aws/install --bin-dir /usr/bin --install-dir /usr/local/aws-cli --update
+rm -rf aws awscliv2.zip
+
+# Install kubectl
+curl -sSL -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.31.2/2024-11-15/bin/linux/amd64/kubectl
+chmod +x ./kubectl
+mv ./kubectl /usr/local/bin/kubectl
+
+# Install ArgoCD CLI
+curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/download/v2.10.4/argocd-linux-amd64
+install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+rm argocd-linux-amd64
 
 
 curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
@@ -123,3 +143,28 @@ docker run -d --name loki --restart always --network monitoring \
 docker run -d --name nginx --restart always --network monitoring -p 80:80 \
   -v /opt/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
   nginx
+
+
+mkdir -p /opt/fluent-bit
+cat << 'FLUENT_BIT_CONF' > /opt/fluent-bit/fluent-bit.conf
+[SERVICE]
+    Flush 1
+    Daemon Off
+    Log_Level info
+
+[INPUT]
+    Name forward
+    Listen 0.0.0.0
+    Port 24224
+
+[OUTPUT]
+    Name loki
+    Match *
+    Host loki
+    Port 3100
+    Labels job=fluentbit
+FLUENT_BIT_CONF
+
+docker run -d --name fluent-bit-receiver --restart always --network monitoring -p 24224:24224 \
+  -v /opt/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro \
+  fluent/fluent-bit:latest

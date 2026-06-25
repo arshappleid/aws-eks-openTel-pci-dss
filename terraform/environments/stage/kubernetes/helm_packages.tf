@@ -1,78 +1,3 @@
-locals {
-  environment = "dev"
-}
-
-
-data "aws_lb_target_group" "frontend" {
-  name = "tg-frontend-${local.environment}"
-}
-
-data "aws_lb_target_group" "backend" {
-  name = "tg-backend-${local.environment}"
-}
-
-resource "kubernetes_namespace" "react" {
-  provider = kubernetes.frontend
-  metadata {
-    name = "react"
-  }
-}
-
-resource "kubernetes_namespace" "fastapi" {
-  provider = kubernetes.backend
-  metadata {
-    name = "fastapi"
-  }
-}
-
-resource "kubernetes_manifest" "frontend_target_binding" {
-  provider = kubernetes.frontend
-
-  manifest = {
-    apiVersion = "elbv2.k8s.aws/v1beta1"
-    kind       = "TargetGroupBinding"
-    metadata = {
-      name      = "frontend-tg-binding"
-      namespace = "react"
-    }
-    spec = {
-      targetGroupARN = data.aws_lb_target_group.frontend.arn
-      targetType     = "ip"
-      serviceRef = {
-        name = "financeguard-frontend-service"
-        port = 80
-      }
-    }
-  }
-
-  depends_on = [kubernetes_namespace.react, helm_release.frontend_aws_lbc]
-}
-
-
-resource "kubernetes_manifest" "backend_target_binding" {
-  provider = kubernetes.backend
-
-  manifest = {
-    apiVersion = "elbv2.k8s.aws/v1beta1"
-    kind       = "TargetGroupBinding"
-    metadata = {
-      name      = "backend-tg-binding"
-      namespace = "fastapi"
-    }
-    spec = {
-      targetGroupARN = data.aws_lb_target_group.backend.arn
-      targetType     = "ip"
-      serviceRef = {
-        name = "financeguard-backend-service"
-        port = 80
-      }
-    }
-  }
-
-  depends_on = [kubernetes_namespace.fastapi, helm_release.backend_aws_lbc]
-}
-
-
 resource "random_password" "argocd_webhook_secret_frontend" {
   length  = 32
   special = false
@@ -112,6 +37,14 @@ resource "helm_release" "frontend_argocd" {
   set {
     name  = "controller.resources.limits.memory"
     value = "256Mi"
+  }
+  set {
+    name  = "server.extraArgs[0]"
+    value = "--insecure"
+  }
+  set {
+    name  = "server.extraArgs[1]"
+    value = "--rootpath=/argocd"
   }
   set {
     name  = "server.resources.requests.cpu"
@@ -206,6 +139,10 @@ resource "helm_release" "backend_argocd" {
   namespace        = "argocd"
   create_namespace = true
   version          = "5.46.7"
+
+  cleanup_on_fail  = true
+  replace          = true
+  force_update     = true
 
   set {
     name  = "configs.repositories.financeguard.url"
@@ -307,10 +244,24 @@ resource "helm_release" "backend_aws_lbc" {
     value = "aws-load-balancer-controller"
   }
 
+  cleanup_on_fail  = true
+  replace          = true
+  force_update     = true
+
   set {
     name  = "vpcId"
     value = data.aws_eks_cluster.backend.vpc_config[0].vpc_id
   }
+}
+
+output "argocd_webhook_secret_frontend" {
+  value     = random_password.argocd_webhook_secret_frontend.result
+  sensitive = true
+}
+
+output "argocd_webhook_secret_backend" {
+  value     = random_password.argocd_webhook_secret_backend.result
+  sensitive = true
 }
 
 
@@ -439,6 +390,50 @@ resource "helm_release" "frontend_fluent_bit" {
   chart      = "fluent-bit"
   namespace  = "kube-system"
   version    = "0.47.0"
+
+  cleanup_on_fail  = true
+  replace          = true
+  force_update     = true
+
+  values = [
+    <<-EOT
+    config:
+      service: |
+        [SERVICE]
+            Flush         1
+            Log_Level     info
+            Daemon        off
+            HTTP_Server   On
+            HTTP_Listen   0.0.0.0
+            HTTP_Port     2020
+
+      inputs: |
+        [INPUT]
+            Name              tail
+            Tag               kube.*
+            Path              /var/log/containers/*.log
+
+      outputs: |
+        [OUTPUT]
+            Name              forward
+            Match             *
+            Host              otel-collector.financeguard.local
+            Port              24224
+    EOT
+  ]
+}
+
+resource "helm_release" "backend_fluent_bit" {
+  provider   = helm.backend
+  name       = "fluent-bit"
+  repository = "https://fluent.github.io/helm-charts"
+  chart      = "fluent-bit"
+  namespace  = "kube-system"
+  version    = "0.47.0"
+
+  cleanup_on_fail  = true
+  replace          = true
+  force_update     = true
 
   values = [
     <<-EOT

@@ -5,9 +5,9 @@ variable "aws_region" {
 }
 
 variable "kubernetes_version" {
-  description = "The version of Kubernetes to use for the clusters"
+  description = "Kubernetes version to use"
   type        = string
-  default     = "1.30"
+  default     = "1.31"
 }
 
 variable "prod_cluster_endpoint_public_access" {

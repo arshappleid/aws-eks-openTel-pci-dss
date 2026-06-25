@@ -45,7 +45,7 @@ resource "kubernetes_manifest" "frontend_target_binding" {
     }
   }
 
-  depends_on = [kubernetes_namespace.react]
+  depends_on = [kubernetes_namespace.react, helm_release.frontend_aws_lbc]
 }
 
 
@@ -69,9 +69,14 @@ resource "kubernetes_manifest" "backend_target_binding" {
     }
   }
 
-  depends_on = [kubernetes_namespace.fastapi]
+  depends_on = [kubernetes_namespace.fastapi, helm_release.backend_aws_lbc]
 }
 
+
+resource "random_password" "argocd_webhook_secret_frontend" {
+  length  = 32
+  special = false
+}
 
 resource "helm_release" "frontend_argocd" {
   provider         = helm.frontend
@@ -85,6 +90,11 @@ resource "helm_release" "frontend_argocd" {
   set {
     name  = "configs.repositories.financeguard.url"
     value = "https://github.com/arshappleid/aws-eks-openTel-pci-dss"
+  }
+
+  set {
+    name  = "configs.secret.githubSecret"
+    value = random_password.argocd_webhook_secret_frontend.result
   }
 
   set {
@@ -184,6 +194,11 @@ resource "helm_release" "frontend_aws_lbc" {
 }
 
 
+resource "random_password" "argocd_webhook_secret_backend" {
+  length  = 32
+  special = false
+}
+
 resource "helm_release" "backend_argocd" {
   provider         = helm.backend
   name             = "argocd"
@@ -196,6 +211,11 @@ resource "helm_release" "backend_argocd" {
   set {
     name  = "configs.repositories.financeguard.url"
     value = "https://github.com/arshappleid/aws-eks-openTel-pci-dss"
+  }
+
+  set {
+    name  = "configs.secret.githubSecret"
+    value = random_password.argocd_webhook_secret_backend.result
   }
 
   set {
@@ -307,6 +327,8 @@ resource "helm_release" "frontend_otel_collector" {
   values = [
     <<-EOT
     mode: daemonset
+    image:
+      repository: "otel/opentelemetry-collector-contrib"
     presets:
       kubernetesAttributes:
         enabled: true
@@ -364,6 +386,8 @@ resource "helm_release" "backend_otel_collector" {
   values = [
     <<-EOT
     mode: daemonset
+    image:
+      repository: "otel/opentelemetry-collector-contrib"
     presets:
       kubernetesAttributes:
         enabled: true
@@ -425,10 +449,22 @@ resource "helm_release" "frontend_fluent_bit" {
             Flush         1
             Log_Level     info
             Daemon        off
-            Parsers_File  parsers.conf
+            HTTP_Server   On
+            HTTP_Listen   0.0.0.0
+            HTTP_Port     2020
 
       inputs: |
         [INPUT]
             Name              tail
             Tag               kube.*
-            Path              /var/log/containers
+            Path              /var/log/containers/*.log
+
+      outputs: |
+        [OUTPUT]
+            Name              forward
+            Match             *
+            Host              otel-collector.financeguard.local
+            Port              24224
+    EOT
+  ]
+}

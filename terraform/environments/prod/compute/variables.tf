@@ -13,7 +13,7 @@ variable "cluster_name" {
 variable "kubernetes_version" {
   description = "Kubernetes version to use"
   type        = string
-  default     = "1.36"
+  default     = "1.31"
 }
 
 variable "cluster_endpoint_public_access" {

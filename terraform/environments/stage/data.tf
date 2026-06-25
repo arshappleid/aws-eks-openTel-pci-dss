@@ -6,6 +6,10 @@ data "aws_ec2_transit_gateway" "this" {
   }
 }
 
+data "aws_iam_role" "bastion" {
+  name = "bastion-server-role"
+}
+
 data "aws_ec2_transit_gateway_route_table" "spokes" {
   filter {
     name   = "tag:Name"

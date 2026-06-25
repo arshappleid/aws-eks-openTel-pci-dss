@@ -19,6 +19,10 @@ data "aws_vpc" "frontend" {
   }
 }
 
+data "aws_iam_role" "bastion" {
+  name = "bastion-server-role"
+}
+
 data "aws_subnets" "frontend_private" {
   filter {
     name   = "vpc-id"
@@ -93,6 +97,31 @@ module "frontend_eks" {
   }
 
   tags = merge(local.tags, { Tier = "frontend" })
+
+  access_entries = {
+    github_actions = {
+      principal_arn = "arn:aws:iam::866934333672:role/GITHUB-ACTIONS-ALL-REPO"
+      policy_associations = {
+        cluster_admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+    bastion = {
+      principal_arn = data.aws_iam_role.bastion.arn
+      policy_associations = {
+        cluster_admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
 }
 
 
@@ -141,6 +170,31 @@ module "backend_eks" {
   }
 
   tags = merge(local.tags, { Tier = "backend" })
+
+  access_entries = {
+    github_actions = {
+      principal_arn = "arn:aws:iam::866934333672:role/GITHUB-ACTIONS-ALL-REPO"
+      policy_associations = {
+        cluster_admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+    bastion = {
+      principal_arn = data.aws_iam_role.bastion.arn
+      policy_associations = {
+        cluster_admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
 }
 
 

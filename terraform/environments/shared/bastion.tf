@@ -157,3 +157,31 @@ resource "aws_iam_instance_profile" "bastion" {
     Name = "bastion-server-instance-profile"
   })
 }
+
+resource "aws_iam_policy" "bastion_eks" {
+  name        = "bastion-eks-access-policy"
+  description = "Allows Bastion host to interact with EKS clusters"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "eks:DescribeCluster",
+          "eks:ListClusters"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = merge(local.common_tags, {
+    Name = "bastion-eks-access-policy"
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "bastion_eks" {
+  role       = aws_iam_role.bastion.name
+  policy_arn = aws_iam_policy.bastion_eks.arn
+}
