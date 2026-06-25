@@ -5,7 +5,7 @@ appName: financeguard-backend
 containerName: fastapi-backend
 
 image:
-  repository: financeguard-backend
+  repository: 866934333672.dkr.ecr.us-east-1.amazonaws.com/prab-eks-backend
   tag: latest
 
 resources:
