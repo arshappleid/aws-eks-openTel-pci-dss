@@ -28,14 +28,22 @@ data "aws_eks_cluster_auth" "backend" {
 provider "kubernetes" {
   host                   = data.aws_eks_cluster.frontend.endpoint
   cluster_ca_certificate = base64decode(data.aws_eks_cluster.frontend.certificate_authority[0].data)
-  token                  = data.aws_eks_cluster_auth.frontend.token
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.frontend.name, "--region", var.aws_region]
+  }
 }
 
 provider "helm" {
   kubernetes {
     host                   = data.aws_eks_cluster.frontend.endpoint
     cluster_ca_certificate = base64decode(data.aws_eks_cluster.frontend.certificate_authority[0].data)
-    token                  = data.aws_eks_cluster_auth.frontend.token
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      args        = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.frontend.name, "--region", var.aws_region]
+    }
   }
 }
 
@@ -44,7 +52,11 @@ provider "kubernetes" {
   alias                  = "frontend"
   host                   = data.aws_eks_cluster.frontend.endpoint
   cluster_ca_certificate = base64decode(data.aws_eks_cluster.frontend.certificate_authority[0].data)
-  token                  = data.aws_eks_cluster_auth.frontend.token
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.frontend.name, "--region", var.aws_region]
+  }
 }
 
 provider "helm" {
@@ -52,7 +64,11 @@ provider "helm" {
   kubernetes {
     host                   = data.aws_eks_cluster.frontend.endpoint
     cluster_ca_certificate = base64decode(data.aws_eks_cluster.frontend.certificate_authority[0].data)
-    token                  = data.aws_eks_cluster_auth.frontend.token
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      args        = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.frontend.name, "--region", var.aws_region]
+    }
   }
 }
 
@@ -61,7 +77,11 @@ provider "kubernetes" {
   alias                  = "backend"
   host                   = data.aws_eks_cluster.backend.endpoint
   cluster_ca_certificate = base64decode(data.aws_eks_cluster.backend.certificate_authority[0].data)
-  token                  = data.aws_eks_cluster_auth.backend.token
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.backend.name, "--region", var.aws_region]
+  }
 }
 
 provider "helm" {
@@ -69,6 +89,10 @@ provider "helm" {
   kubernetes {
     host                   = data.aws_eks_cluster.backend.endpoint
     cluster_ca_certificate = base64decode(data.aws_eks_cluster.backend.certificate_authority[0].data)
-    token                  = data.aws_eks_cluster_auth.backend.token
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      args        = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.backend.name, "--region", var.aws_region]
+    }
   }
 }

@@ -25,7 +25,7 @@ spec:
             project: financeguard
             source:
                 repoURL: 'https://github.com/arshappleid/aws-eks-openTel-pci-dss.git'
-                targetRevision: HEAD
+                targetRevision: stage
                 path: helm/financeguard
                 helm:
                     valueFiles:

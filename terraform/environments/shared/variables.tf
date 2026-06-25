@@ -74,7 +74,7 @@ variable "services" {
     }
     frontend-stage-argocd = {
       path_pattern       = "/argocd/*"
-      health_check_path  = "/argocd/healthz"
+      health_check_path  = "/healthz"
       alb_route_priority = 115
       strip_path_prefix  = false
     }

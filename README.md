@@ -118,7 +118,7 @@ All monitoring, metrics, logging, tracing, and continuous delivery tools are hos
 | **Prometheus** | `http://<bastion-ip>/prometheus/` | Scraping status, target health, and query editor |
 | **Jaeger** | `http://<bastion-ip>/jaeger/` | Distributed tracing search and dependency graphs |
 | **Loki** | `http://<bastion-ip>/loki/` | Container log ingestion api path |
-| **Argo CD** | `http://<bastion-ip>/argocd/` | GitOps continuous delivery console (optional proxy route) |
+| **Argo CD** | `http://<ALB_DNS_NAME>/argocd/` | GitOps continuous delivery console. Username is `admin`, password is in the `argocd-initial-admin-secret` Kubernetes secret. |
 
 
 ---
