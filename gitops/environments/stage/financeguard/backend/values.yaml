@@ -2,6 +2,8 @@
 replicaCount: 2
 
 appName: financeguard-backend
+nameOverride: financeguard-backend
+fullnameOverride: financeguard-backend
 containerName: fastapi-backend
 
 image:

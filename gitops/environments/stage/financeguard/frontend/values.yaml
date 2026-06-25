@@ -2,6 +2,8 @@
 replicaCount: 2
 
 appName: financeguard-frontend
+nameOverride: financeguard-frontend
+fullnameOverride: financeguard-frontend
 containerName: react-frontend
 
 image:
