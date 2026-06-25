@@ -15,6 +15,10 @@ spec:
       labels:
         app: {{ .Values.appName | default (include "financeguard.name" .) }}
         {{- include "financeguard.selectorLabels" . | nindent 8 }}
+      {{- if .Values.otelSidecar.enabled }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/otel-configmap.yaml") . | sha256sum }}
+      {{- end }}
     spec:
       containers:
         - name: {{ .Values.containerName | default .Chart.Name }}
