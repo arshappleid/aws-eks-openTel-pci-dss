@@ -9,6 +9,7 @@ containerName: react-frontend
 image:
   repository: 866934333672.dkr.ecr.us-east-1.amazonaws.com/prab-eks-frontend
   tag: latest
+  pullPolicy: Always
 
 resources:
   requests:
