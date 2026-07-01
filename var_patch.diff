@@ -1,0 +1,26 @@
+--- terraform/environments/shared/compute/variables.tf	2024-01-01 00:00:00.000000000 +0000
++++ terraform/environments/shared/compute/variables.tf	2024-01-01 00:00:00.000000000 +0000
+@@ -66,6 +66,12 @@
+       alb_route_priority = 100
+       strip_path_prefix  = true
+     }
++    frontend-dev-argocd = {
++      path_pattern       = "/argocd/*"
++      health_check_path  = "/healthz"
++      alb_route_priority = 105
++      strip_path_prefix  = false
++    }
+     frontend-stage = {
+       path_pattern       = "/stage/*"
+@@ -84,5 +90,11 @@
+       alb_route_priority = 120
+       strip_path_prefix  = true
+     }
++    frontend-prod-argocd = {
++      path_pattern       = "/argocd/*"
++      health_check_path  = "/healthz"
++      alb_route_priority = 125
++      strip_path_prefix  = false
++    }
+   }
+ }

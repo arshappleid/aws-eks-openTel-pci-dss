@@ -1,469 +1,102 @@
-locals {
-  environment = "dev"
-}
-
-
-data "aws_lb_target_group" "frontend" {
-  name = "tg-frontend-${local.environment}"
-}
-
-data "aws_lb_target_group" "backend" {
-  name = "tg-backend-${local.environment}"
-}
-
-resource "kubernetes_namespace" "react" {
-  provider = kubernetes.frontend
-  metadata {
-    name = "react"
+provider "aws" {
+  region = var.aws_region
+  default_tags {
+    tags = { Owner = "Prabhmeet" }
   }
 }
 
-resource "kubernetes_namespace" "fastapi" {
-  provider = kubernetes.backend
-  metadata {
-    name = "fastapi"
+variable "aws_region" {}
+variable "env" {}
+
+data "aws_eks_cluster" "frontend" {
+  name = "financeguard-${var.env}-frontend"
+}
+data "aws_eks_cluster_auth" "frontend" {
+  name = "financeguard-${var.env}-frontend"
+}
+data "aws_eks_cluster" "backend" {
+  name = "financeguard-${var.env}-backend"
+}
+data "aws_eks_cluster_auth" "backend" {
+  name = "financeguard-${var.env}-backend"
+}
+
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.frontend.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.frontend.certificate_authority[0].data)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.frontend.name, "--region", var.aws_region]
   }
 }
 
-resource "kubernetes_manifest" "frontend_target_binding" {
-  provider = kubernetes.frontend
-
-  manifest = {
-    apiVersion = "elbv2.k8s.aws/v1beta1"
-    kind       = "TargetGroupBinding"
-    metadata = {
-      name      = "frontend-tg-binding"
-      namespace = "react"
-    }
-    spec = {
-      targetGroupARN = data.aws_lb_target_group.frontend.arn
-      targetType     = "ip"
-      serviceRef = {
-        name = "financeguard-frontend-service"
-        port = 80
-      }
+provider "helm" {
+  kubernetes {
+    host                   = data.aws_eks_cluster.frontend.endpoint
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.frontend.certificate_authority[0].data)
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      args        = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.frontend.name, "--region", var.aws_region]
     }
   }
-
-  depends_on = [kubernetes_namespace.react, helm_release.frontend_aws_lbc]
 }
 
-
-resource "kubernetes_manifest" "backend_target_binding" {
-  provider = kubernetes.backend
-
-  manifest = {
-    apiVersion = "elbv2.k8s.aws/v1beta1"
-    kind       = "TargetGroupBinding"
-    metadata = {
-      name      = "backend-tg-binding"
-      namespace = "fastapi"
+provider "kubernetes" {
+  alias                  = "frontend"
+  host                   = data.aws_eks_cluster.frontend.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.frontend.certificate_authority[0].data)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.frontend.name, "--region", var.aws_region]
+  }
+}
+provider "helm" {
+  alias = "frontend"
+  kubernetes {
+    host                   = data.aws_eks_cluster.frontend.endpoint
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.frontend.certificate_authority[0].data)
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      args        = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.frontend.name, "--region", var.aws_region]
     }
-    spec = {
-      targetGroupARN = data.aws_lb_target_group.backend.arn
-      targetType     = "ip"
-      serviceRef = {
-        name = "financeguard-backend-service"
-        port = 80
-      }
+  }
+}
+
+provider "kubernetes" {
+  alias                  = "backend"
+  host                   = data.aws_eks_cluster.backend.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.backend.certificate_authority[0].data)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.backend.name, "--region", var.aws_region]
+  }
+}
+provider "helm" {
+  alias = "backend"
+  kubernetes {
+    host                   = data.aws_eks_cluster.backend.endpoint
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.backend.certificate_authority[0].data)
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      args        = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.backend.name, "--region", var.aws_region]
     }
   }
-
-  depends_on = [kubernetes_namespace.fastapi, helm_release.backend_aws_lbc]
 }
 
+module "k8s_platform" {
+  source = "../../../modules/k8s-platform"
+  env    = var.env
 
-resource "random_password" "argocd_webhook_secret_frontend" {
-  length  = 32
-  special = false
-}
-
-resource "helm_release" "frontend_argocd" {
-  provider         = helm.frontend
-  name             = "argocd"
-  repository       = "https://argoproj.github.io/argo-helm"
-  chart            = "argo-cd"
-  namespace        = "argocd"
-  create_namespace = true
-  version          = "5.46.7"
-
-  set {
-    name  = "configs.repositories.financeguard.url"
-    value = "https://github.com/arshappleid/aws-eks-openTel-pci-dss"
+  providers = {
+    helm.frontend       = helm.frontend
+    kubernetes.frontend = kubernetes.frontend
+    helm.backend        = helm.backend
+    kubernetes.backend  = kubernetes.backend
   }
-
-  set {
-    name  = "configs.secret.githubSecret"
-    value = random_password.argocd_webhook_secret_frontend.result
-  }
-
-  set {
-    name  = "controller.resources.requests.cpu"
-    value = "100m"
-  }
-  set {
-    name  = "controller.resources.requests.memory"
-    value = "128Mi"
-  }
-  set {
-    name  = "controller.resources.limits.cpu"
-    value = "500m"
-  }
-  set {
-    name  = "controller.resources.limits.memory"
-    value = "256Mi"
-  }
-  set {
-    name  = "server.resources.requests.cpu"
-    value = "50m"
-  }
-  set {
-    name  = "server.resources.requests.memory"
-    value = "64Mi"
-  }
-  set {
-    name  = "server.resources.limits.cpu"
-    value = "300m"
-  }
-  set {
-    name  = "server.resources.limits.memory"
-    value = "128Mi"
-  }
-  set {
-    name  = "repoServer.resources.requests.cpu"
-    value = "50m"
-  }
-  set {
-    name  = "repoServer.resources.requests.memory"
-    value = "64Mi"
-  }
-  set {
-    name  = "repoServer.resources.limits.cpu"
-    value = "300m"
-  }
-  set {
-    name  = "repoServer.resources.limits.memory"
-    value = "128Mi"
-  }
-  set {
-    name  = "redis.resources.requests.cpu"
-    value = "50m"
-  }
-  set {
-    name  = "redis.resources.requests.memory"
-    value = "64Mi"
-  }
-  set {
-    name  = "redis.resources.limits.cpu"
-    value = "300m"
-  }
-  set {
-    name  = "redis.resources.limits.memory"
-    value = "128Mi"
-  }
-}
-
-resource "helm_release" "frontend_aws_lbc" {
-  provider   = helm.frontend
-  name       = "aws-load-balancer-controller"
-  repository = "https://aws.github.io/eks-charts"
-  chart      = "aws-load-balancer-controller"
-  namespace  = "kube-system"
-  version    = "1.8.1"
-
-  set {
-    name  = "clusterName"
-    value = data.aws_eks_cluster.frontend.name
-  }
-
-  set {
-    name  = "serviceAccount.create"
-    value = "true"
-  }
-
-  set {
-    name  = "serviceAccount.name"
-    value = "aws-load-balancer-controller"
-  }
-
-  set {
-    name  = "vpcId"
-    value = data.aws_eks_cluster.frontend.vpc_config[0].vpc_id
-  }
-}
-
-
-resource "random_password" "argocd_webhook_secret_backend" {
-  length  = 32
-  special = false
-}
-
-resource "helm_release" "backend_argocd" {
-  provider         = helm.backend
-  name             = "argocd"
-  repository       = "https://argoproj.github.io/argo-helm"
-  chart            = "argo-cd"
-  namespace        = "argocd"
-  create_namespace = true
-  version          = "5.46.7"
-
-  set {
-    name  = "configs.repositories.financeguard.url"
-    value = "https://github.com/arshappleid/aws-eks-openTel-pci-dss"
-  }
-
-  set {
-    name  = "configs.secret.githubSecret"
-    value = random_password.argocd_webhook_secret_backend.result
-  }
-
-  set {
-    name  = "controller.resources.requests.cpu"
-    value = "100m"
-  }
-  set {
-    name  = "controller.resources.requests.memory"
-    value = "128Mi"
-  }
-  set {
-    name  = "controller.resources.limits.cpu"
-    value = "500m"
-  }
-  set {
-    name  = "controller.resources.limits.memory"
-    value = "256Mi"
-  }
-  set {
-    name  = "server.resources.requests.cpu"
-    value = "50m"
-  }
-  set {
-    name  = "server.resources.requests.memory"
-    value = "64Mi"
-  }
-  set {
-    name  = "server.resources.limits.cpu"
-    value = "300m"
-  }
-  set {
-    name  = "server.resources.limits.memory"
-    value = "128Mi"
-  }
-  set {
-    name  = "repoServer.resources.requests.cpu"
-    value = "50m"
-  }
-  set {
-    name  = "repoServer.resources.requests.memory"
-    value = "64Mi"
-  }
-  set {
-    name  = "repoServer.resources.limits.cpu"
-    value = "300m"
-  }
-  set {
-    name  = "repoServer.resources.limits.memory"
-    value = "128Mi"
-  }
-  set {
-    name  = "redis.resources.requests.cpu"
-    value = "50m"
-  }
-  set {
-    name  = "redis.resources.requests.memory"
-    value = "64Mi"
-  }
-  set {
-    name  = "redis.resources.limits.cpu"
-    value = "300m"
-  }
-  set {
-    name  = "redis.resources.limits.memory"
-    value = "128Mi"
-  }
-}
-
-
-resource "helm_release" "backend_aws_lbc" {
-  provider   = helm.backend
-  name       = "aws-load-balancer-controller"
-  repository = "https://aws.github.io/eks-charts"
-  chart      = "aws-load-balancer-controller"
-  namespace  = "kube-system"
-  version    = "1.8.1"
-
-  set {
-    name  = "clusterName"
-    value = data.aws_eks_cluster.backend.name
-  }
-
-  set {
-    name  = "serviceAccount.create"
-    value = "true"
-  }
-
-  set {
-    name  = "serviceAccount.name"
-    value = "aws-load-balancer-controller"
-  }
-
-  set {
-    name  = "vpcId"
-    value = data.aws_eks_cluster.backend.vpc_config[0].vpc_id
-  }
-}
-
-
-resource "helm_release" "frontend_otel_collector" {
-  provider         = helm.frontend
-  name             = "otel-collector"
-  repository       = "https://open-telemetry.github.io/opentelemetry-helm-charts"
-  chart            = "opentelemetry-collector"
-  namespace        = "kube-system"
-  version          = "0.91.0"
-  create_namespace = false
-
-  values = [
-    <<-EOT
-    mode: daemonset
-    image:
-      repository: "otel/opentelemetry-collector-contrib"
-    presets:
-      kubernetesAttributes:
-        enabled: true
-      kubeletMetrics:
-        enabled: true
-      logsCollection:
-        enabled: true
-    config:
-      receivers:
-        otlp:
-          protocols:
-            grpc:
-              endpoint: 0.0.0.0:4317
-            http:
-              endpoint: 0.0.0.0:4318
-      exporters:
-        otlp/jaeger:
-          endpoint: "otel-collector.financeguard.local:4317"
-          tls:
-            insecure: true
-        prometheusremotewrite:
-          endpoint: "http://otel-collector.financeguard.local/prometheus/api/v1/write"
-          tls:
-            insecure: true
-        loki:
-          endpoint: "http://otel-collector.financeguard.local/loki/api/v1/push"
-      service:
-        pipelines:
-          traces:
-            receivers: [otlp]
-            processors: [memory_limiter, batch]
-            exporters: [otlp/jaeger]
-          metrics:
-            receivers: [otlp, kubeletstats]
-            processors: [memory_limiter, batch]
-            exporters: [prometheusremotewrite]
-          logs:
-            receivers: [otlp, filelog]
-            processors: [memory_limiter, batch]
-            exporters: [loki]
-    EOT
-  ]
-}
-
-
-resource "helm_release" "backend_otel_collector" {
-  provider         = helm.backend
-  name             = "otel-collector"
-  repository       = "https://open-telemetry.github.io/opentelemetry-helm-charts"
-  chart            = "opentelemetry-collector"
-  namespace        = "kube-system"
-  version          = "0.91.0"
-  create_namespace = false
-
-  values = [
-    <<-EOT
-    mode: daemonset
-    image:
-      repository: "otel/opentelemetry-collector-contrib"
-    presets:
-      kubernetesAttributes:
-        enabled: true
-      kubeletMetrics:
-        enabled: true
-      logsCollection:
-        enabled: true
-    config:
-      receivers:
-        otlp:
-          protocols:
-            grpc:
-              endpoint: 0.0.0.0:4317
-            http:
-              endpoint: 0.0.0.0:4318
-      exporters:
-        otlp/jaeger:
-          endpoint: "otel-collector.financeguard.local:4317"
-          tls:
-            insecure: true
-        prometheusremotewrite:
-          endpoint: "http://otel-collector.financeguard.local/prometheus/api/v1/write"
-          tls:
-            insecure: true
-        loki:
-          endpoint: "http://otel-collector.financeguard.local/loki/api/v1/push"
-      service:
-        pipelines:
-          traces:
-            receivers: [otlp]
-            processors: [memory_limiter, batch]
-            exporters: [otlp/jaeger]
-          metrics:
-            receivers: [otlp, kubeletstats]
-            processors: [memory_limiter, batch]
-            exporters: [prometheusremotewrite]
-          logs:
-            receivers: [otlp, filelog]
-            processors: [memory_limiter, batch]
-            exporters: [loki]
-    EOT
-  ]
-}
-
-
-resource "helm_release" "frontend_fluent_bit" {
-  provider   = helm.frontend
-  name       = "fluent-bit"
-  repository = "https://fluent.github.io/helm-charts"
-  chart      = "fluent-bit"
-  namespace  = "kube-system"
-  version    = "0.47.0"
-
-  values = [
-    <<-EOT
-    config:
-      service: |
-        [SERVICE]
-            Flush         1
-            Log_Level     info
-            Daemon        off
-            HTTP_Server   On
-            HTTP_Listen   0.0.0.0
-            HTTP_Port     2020
-
-      inputs: |
-        [INPUT]
-            Name              tail
-            Tag               kube.*
-            Path              /var/log/containers/*.log
-
-      outputs: |
-        [OUTPUT]
-            Name              forward
-            Match             *
-            Host              otel-collector.financeguard.local
-            Port              24224
-    EOT
-  ]
 }

@@ -11,6 +11,5 @@ services:
         volumes:
             - ./terraform/:/terraform/
             - ./azure_terraform/:/azure_terraform/
-            - ./scripts/migrate_state.sh:/usr/local/bin/migrate_state.sh:ro
+            - ./scripts/:/scripts/
         working_dir: /terraform/
-

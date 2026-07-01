@@ -7,6 +7,7 @@ on:
       - dev
       - stage
       - prod
+      - shared
     paths:
       - 'terraform/**'
 
@@ -22,6 +23,9 @@ jobs:
       matrix:
         environment: ["${{ github.base_ref || github.ref_name }}"]
         layer: [network, compute, kubernetes]
+        exclude:
+          - environment: shared
+            layer: kubernetes
     defaults:
       run:
         working-directory: terraform/environments/${{ matrix.environment }}/${{ matrix.layer }}
@@ -59,13 +63,26 @@ jobs:
             -backend-config="bucket=${{ secrets.TF_S3_BACKEND_BUCKET }}" \
             -backend-config="key=eks-project/tfstate/${{ matrix.environment }}/${{ matrix.layer }}/terraform.tfstate" \
             -backend-config="region=us-east-1"
-            
+
+      - name: Select Terraform Workspace
+        if: steps.filter.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          terraform workspace select ${{ matrix.environment }} || terraform workspace new ${{ matrix.environment }}
+
+      # shared uses shared.tfvars; all other environments use <env>.tfvars
       - name: Terraform Plan
         if: steps.filter.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
         id: plan
         run: |
-          if [ "${{ matrix.layer }}" = "kubernetes" ]; then
-            terraform plan -no-color -out=tfplan || echo "WARNING: Kubernetes layer plan failed (likely due to private network connectivity), continuing as requested."
+          if [ "${{ matrix.environment }}" = "shared" ]; then
+            VAR_FILE="shared.tfvars"
           else
-            terraform plan -no-color -out=tfplan
+            VAR_FILE="${{ matrix.environment }}.tfvars"
+          fi
+
+          if [ "${{ matrix.layer }}" = "kubernetes" ]; then
+            terraform plan -no-color -var-file="$VAR_FILE" -out=tfplan \
+              || echo "WARNING: Kubernetes layer plan failed (likely due to private network connectivity), continuing as requested."
+          else
+            terraform plan -no-color -var-file="$VAR_FILE" -out=tfplan
           fi

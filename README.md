@@ -33,8 +33,25 @@ Architecture diagram and details will be added here.
 │   ├── providers.tf
 │   ├── environments/           # Per-environment isolated configs
 │   │   ├── dev/
-│   │   ├── stage/
-│   │   └── prod/
+│   │   │   ├── network/
+│   │   │   │   ├── main.tf
+│   │   │   │   ├── variables.tf    # type declarations only (no defaults)
+│   │   │   │   └── dev.tfvars      # ← environment-specific values
+│   │   │   ├── compute/
+│   │   │   │   ├── main.tf
+│   │   │   │   ├── variables.tf
+│   │   │   │   └── dev.tfvars
+│   │   │   └── kubernetes/
+│   │   │       ├── main.tf
+│   │   │       ├── variables.tf
+│   │   │       └── dev.tfvars
+│   │   ├── stage/              # Same structure; stage.tfvars per layer
+│   │   ├── prod/               # Same structure; prod.tfvars per layer
+│   │   └── shared/
+│   │       ├── network/
+│   │       │   └── shared.tfvars  # Shared-network values (inspection VPC)
+│   │       └── compute/
+│   │           └── shared.tfvars  # Shared-compute values (Bastion/ALB)
 │   └── modules/
 │       ├── network/            # VPC (wraps terraform-aws-modules/vpc)
 │       ├── eks/                # EKS (wraps terraform-aws-modules/eks)
@@ -57,6 +74,7 @@ Architecture diagram and details will be added here.
 └── .github/workflows/          # CI/CD pipelines
 ```
 
+
 ---
 
 ## Prerequisites
@@ -76,18 +94,48 @@ Architecture diagram and details will be added here.
 
 ---
 
-## Development Commands
+## Terraform Workspace Demo (dev environment)
+
+This repo uses **Terraform workspaces** with per-environment `.tfvars` files.  
+All variable values live in `terraform/environments/<env>/<layer>/<env>.tfvars`; the `.tf` files themselves contain no hardcoded defaults.
+
+### Running `terraform apply` for `dev/network`
 
 ```bash
+# 1. Start the Terraform Docker environment (optional — skip if using local TF install)
 docker compose up -d
 docker exec -it terraform_env /bin/bash
-aws login --remote
-cd environments/shared/compute
-    terraform init \
-      -backend-config="bucket=prab-terraform-backend" \
-      -backend-config="key=eks-project/tfstate/dev/compute/terraform.tfstate" \
-      -backend-config="region=us-east-1"
-terraform apply --auto-approve
+
+# 2. Authenticate to AWS
+aws sso login   # or: aws configure
+
+# 3. Move into the dev network layer
+cd terraform/environments/dev/network
+
+# 4. Initialise with the remote S3 backend
+terraform init \
+  -backend-config="bucket=prab-terraform-backend" \
+  -backend-config="key=eks-project/tfstate/dev/network/terraform.tfstate" \
+  -backend-config="region=us-east-1"
+
+# 5. Select (or create) the dev workspace
+terraform workspace select dev || terraform workspace new dev
+
+# 6. Preview changes — var-file supplies all environment-specific values
+terraform plan -var-file="dev.tfvars"
+
+# 7. Apply
+terraform apply -var-file="dev.tfvars" -auto-approve
+```
+
+> **Switching environments** is a one-liner: replace `dev` with `stage` or `prod` in the path and workspace name, and point `-var-file` at the matching `.tfvars`.
+
+```bash
+# Example: run the same layer for staging
+cd terraform/environments/stage/network
+terraform workspace select stage || terraform workspace new stage
+terraform plan  -var-file="stage.tfvars"
+terraform apply -var-file="stage.tfvars" -auto-approve
 ```
 
 ## Environment Summary

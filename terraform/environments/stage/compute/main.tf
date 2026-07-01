@@ -1,100 +1,78 @@
-
-locals {
-  environment           = "stage"
-  app_name              = "financeguard"
-  frontend_cluster_name = "${local.app_name}-${local.environment}-frontend"
-  backend_cluster_name  = "${local.app_name}-${local.environment}-backend"
-  tags = {
-    Environment = local.environment
-    Project     = "aws-eks-openTel-pci-dss"
-    ManagedBy   = "Terraform"
+provider "aws" {
+  region = var.aws_region
+  default_tags {
+    tags = { Owner = "Prabhmeet" }
   }
 }
 
+variable "aws_region" {}
+variable "env" {}
+variable "kubernetes_version" {}
+variable "cluster_name" {}
 
+module "eks_cluster" {
+  source = "../../../modules/eks-cluster"
 
-module "frontend_eks" {
-  providers = {
-    helm       = helm.frontend
-    kubernetes = kubernetes.frontend
-  }
-  source = "../../../modules/eks"
-  env    = local.environment
-
-  cluster_name    = local.frontend_cluster_name
-  cluster_version = var.kubernetes_version
-  vpc_id          = data.aws_vpc.frontend.id
-  subnet_ids      = data.aws_subnets.frontend_private.ids
+  env                            = var.env
+  kubernetes_version             = var.kubernetes_version
   cluster_endpoint_public_access = true
+  enable_reachability            = true
 
-  access_entries = {
-    github_actions = {
-      principal_arn = "arn:aws:iam::866934333672:role/GITHUB-ACTIONS-ALL-REPO"
-      policy_associations = {
-        cluster_admin = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-          access_scope = {
-            type = "cluster"
-          }
-        }
-      }
-    }
-    bastion = {
-      principal_arn = data.aws_iam_role.bastion.arn
-      policy_associations = {
-        cluster_admin = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-          access_scope = {
-            type = "cluster"
-          }
-        }
-      }
-    }
-  }
-
-  tags = merge(local.tags, { Tier = "frontend" })
-}
-
-
-module "backend_eks" {
   providers = {
-    helm       = helm.backend
-    kubernetes = kubernetes.backend
+    helm.frontend       = helm.frontend
+    kubernetes.frontend = kubernetes.frontend
+    helm.backend        = helm.backend
+    kubernetes.backend  = kubernetes.backend
   }
-  source = "../../../modules/eks"
-  env    = local.environment
-
-  cluster_name    = local.backend_cluster_name
-  cluster_version = var.kubernetes_version
-  vpc_id          = data.aws_vpc.backend.id
-  subnet_ids      = data.aws_subnets.backend_private.ids
-  cluster_endpoint_public_access = true
-
-  access_entries = {
-    github_actions = {
-      principal_arn = "arn:aws:iam::866934333672:role/GITHUB-ACTIONS-ALL-REPO"
-      policy_associations = {
-        cluster_admin = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-          access_scope = {
-            type = "cluster"
-          }
-        }
-      }
-    }
-    bastion = {
-      principal_arn = data.aws_iam_role.bastion.arn
-      policy_associations = {
-        cluster_admin = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-          access_scope = {
-            type = "cluster"
-          }
-        }
-      }
-    }
-  }
-
-  tags = merge(local.tags, { Tier = "backend" })
 }
 
+output "frontend_cluster_name" { value = module.eks_cluster.frontend_cluster_name }
+output "backend_cluster_name" { value = module.eks_cluster.backend_cluster_name }
+output "frontend_cluster_endpoint" { value = module.eks_cluster.frontend_cluster_endpoint }
+output "backend_cluster_endpoint" { value = module.eks_cluster.backend_cluster_endpoint }
+
+provider "kubernetes" {
+  alias                  = "frontend"
+  host                   = module.eks_cluster.frontend_cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks_cluster.frontend_cluster_certificate_authority_data)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = ["eks", "get-token", "--cluster-name", module.eks_cluster.frontend_cluster_name]
+  }
+}
+provider "helm" {
+  alias = "frontend"
+  kubernetes {
+    host                   = module.eks_cluster.frontend_cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks_cluster.frontend_cluster_certificate_authority_data)
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      args        = ["eks", "get-token", "--cluster-name", module.eks_cluster.frontend_cluster_name]
+    }
+  }
+}
+
+provider "kubernetes" {
+  alias                  = "backend"
+  host                   = module.eks_cluster.backend_cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks_cluster.backend_cluster_certificate_authority_data)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = ["eks", "get-token", "--cluster-name", module.eks_cluster.backend_cluster_name]
+  }
+}
+provider "helm" {
+  alias = "backend"
+  kubernetes {
+    host                   = module.eks_cluster.backend_cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks_cluster.backend_cluster_certificate_authority_data)
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      args        = ["eks", "get-token", "--cluster-name", module.eks_cluster.backend_cluster_name]
+    }
+  }
+}

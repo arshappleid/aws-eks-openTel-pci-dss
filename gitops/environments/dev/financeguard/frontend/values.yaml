@@ -2,11 +2,14 @@
 replicaCount: 2
 
 appName: financeguard-frontend
+nameOverride: financeguard-frontend
+fullnameOverride: financeguard-frontend
 containerName: react-frontend
 
 image:
-  repository: financeguard-frontend
+  repository: 866934333672.dkr.ecr.us-east-1.amazonaws.com/prab-eks-frontend
   tag: latest
+  pullPolicy: Always
 
 resources:
   requests:
@@ -24,6 +27,7 @@ service:
   port: 80
   targetPort: 80
 
+
 otelSidecar:
   enabled: true
   environment: "dev"
@@ -31,4 +35,3 @@ otelSidecar:
   image:
     repository: otel/opentelemetry-collector-contrib
     tag: "0.104.0"
-

@@ -2,10 +2,12 @@
 replicaCount: 2
 
 appName: financeguard-backend
+nameOverride: financeguard-backend
+fullnameOverride: financeguard-backend
 containerName: fastapi-backend
 
 image:
-  repository: financeguard-backend
+  repository: 866934333672.dkr.ecr.us-east-1.amazonaws.com/prab-eks-backend
   tag: latest
 
 resources:
@@ -19,8 +21,6 @@ resources:
 env:
   - name: ENVIRONMENT
     value: "dev"
-  # App sends telemetry to the local OTEL sidecar; sidecar forwards to the central
-  # collector in the inspection VPC via Cloud Map DNS (otel-collector.financeguard.local).
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: "http://localhost:4317"
 

@@ -16,6 +16,12 @@ crash.*.log
 *.tfvars
 *.tfvars.json
 
+# Allow environment-specific tfvars in the environments directory.
+# These files contain no secrets — secrets are injected via GitHub Actions secrets
+# and the Terraform S3 backend. IAM role ARNs and region values are not sensitive.
+!terraform/environments/**/*.tfvars
+!terraform/environments/**/*.tfvars.json
+
 # Ignore override files as they are usually used to override resources locally and so
 # are not checked in
 override.tf

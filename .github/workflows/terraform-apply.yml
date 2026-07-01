@@ -7,6 +7,7 @@ on:
             - dev
             - stage
             - prod
+            - shared
         paths:
             - "terraform/**"
 
@@ -21,6 +22,9 @@ jobs:
             matrix:
                 environment: ["${{ github.ref_name }}"]
                 layer: [network, compute, kubernetes]
+                exclude:
+                  - environment: shared
+                    layer: kubernetes
             max-parallel: 1
         defaults:
             run:
@@ -60,11 +64,24 @@ jobs:
                     -backend-config="key=eks-project/tfstate/${{ matrix.environment }}/${{ matrix.layer }}/terraform.tfstate" \
                     -backend-config="region=us-east-1"
 
+            - name: Select Terraform Workspace
+              if: steps.filter.outputs.changed == 'true'
+              run: |
+                  terraform workspace select ${{ matrix.environment }} || terraform workspace new ${{ matrix.environment }}
+
+            # shared uses shared.tfvars; all other environments use <env>.tfvars
             - name: Terraform Apply
               if: steps.filter.outputs.changed == 'true'
               run: |
-                if [ "${{ matrix.layer }}" = "kubernetes" ]; then
-                  terraform apply -auto-approve || echo "WARNING: Kubernetes layer apply failed (likely due to private network connectivity), continuing as requested."
+                if [ "${{ matrix.environment }}" = "shared" ]; then
+                  VAR_FILE="shared.tfvars"
                 else
-                  terraform apply -auto-approve
+                  VAR_FILE="${{ matrix.environment }}.tfvars"
+                fi
+
+                if [ "${{ matrix.layer }}" = "kubernetes" ]; then
+                  terraform apply -auto-approve -var-file="$VAR_FILE" \
+                    || echo "WARNING: Kubernetes layer apply failed (likely due to private network connectivity), continuing as requested."
+                else
+                  terraform apply -auto-approve -var-file="$VAR_FILE"
                 fi
